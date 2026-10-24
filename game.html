@@ -1,0 +1,337 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>ミニナノ ゲーム</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#f4f1ec;color:#3c3237;font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+header{display:flex;align-items:center;gap:8px;padding:10px 12px 4px;max-width:980px;margin:0 auto}
+header h1{margin:0;font-size:17px;flex:1}
+header a{font-size:14px;color:#c2185b;text-decoration:none}
+main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
+.card{background:#fff;border-radius:16px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.status{display:flex;align-items:center;gap:10px;margin:2px 0 8px}
+.status b{font-size:20px}
+#hearts{font-size:20px;letter-spacing:2px;color:#e65f91}
+#timer{margin-left:auto;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:720px){.layout{grid-template-columns:1fr}}
+.layout>*{min-width:0}
+#plan2d{width:100%;height:auto;display:block;object-fit:contain;touch-action:manipulation;cursor:pointer}
+#view3d{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f4f1ec;touch-action:none}
+@media (max-width:720px){#view3d{aspect-ratio:5/2}#plan2d{width:auto;max-width:100%;max-height:calc(100dvh - 410px);margin:0 auto}}   /* スマホは図とトレーを1画面に収める */
+#view3d canvas{display:block;width:100%!important;height:100%!important}
+.tools{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px;color:#7a6e73}
+.tools button{font:inherit;font-size:13px;border:1px solid #e3dbde;background:#fff;border-radius:99px;padding:5px 12px;color:#3c3237}
+.tools button.on{background:#e65f91;border-color:#e65f91;color:#fff}
+.tools button:disabled{opacity:.4}
+#msg{margin-left:auto;font-weight:700;color:#e65f91;min-height:1em}
+.tray{position:fixed;left:0;right:0;bottom:0;background:#fffe;backdrop-filter:blur(6px);border-top:1px solid #eadfe3;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+.tray div{max-width:980px;margin:0 auto;display:flex;gap:8px;overflow-x:auto;padding:2px}
+.tray button{flex:0 0 auto;border:3px solid transparent;border-radius:14px;background:#f4f1ec;padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:12px;color:#3c3237}
+.tray button.sel{border-color:#e65f91;background:#fff}
+.tray button canvas{display:block}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
+.c3d{position:relative}
+#combo{position:absolute;left:0;right:0;top:12px;text-align:center;font-size:30px;font-weight:900;color:#e65f91;text-shadow:0 2px 0 #fff,0 0 8px #fff;pointer-events:none;opacity:0}
+#combo.pop{animation:pop .9s ease-out}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.25)}35%{transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+#layerNo.pop{display:inline-block;animation:bump .4s}
+@keyframes bump{40%{transform:scale(1.35);color:#e65f91}}
+.over{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.over .card{max-width:360px;width:100%;text-align:center;padding:18px}
+.over h2{margin:4px 0 8px;font-size:26px;color:#e65f91}
+.over p{margin:6px 0}
+.over img{width:100%;border-radius:12px;margin:6px 0}
+.over button,.over a{display:block;width:100%;margin-top:8px;font:inherit;font-size:16px;font-weight:700;border:0;border-radius:12px;padding:12px;background:#e65f91;color:#fff;text-decoration:none}
+.over .sub{background:#eadfe3;color:#3c3237}
+.over .row{display:flex;gap:8px}.over .row button{font-size:14px}
+.over button:disabled{opacity:.5}
+</style>
+<link rel="stylesheet" href="print.css" media="print">
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script>
+  const CHARS = [{key: 'sakuya', name: '咲耶', file: 'plan'}, {key: 'nemu', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', name: 'シャオラン', file: 'plan_xiaolan'}];
+  const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan')) || CHARS[0];
+  document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
+</script>
+</head><body>
+<header><h1 id="h1">ミニナノ ゲーム</h1><a href="./">キャラを選ぶ</a></header>
+<main>
+  <div class="status"><b id="layerNo"></b><span id="layerSub" style="font-size:13px;color:#7a6e73"></span><span id="hearts"></span><span id="timer">0.0</span></div>
+  <div class="layout">
+    <div class="card c3d"><div id="view3d"></div><div id="combo"></div></div>
+    <div class="card">
+      <div class="tools"><button id="guideBtn" class="on">ガイド</button><button id="hintBtn">💡 3</button><button id="soundBtn">🔊</button><span id="msg"></span></div>
+      <canvas id="plan2d"></canvas>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#7a6e73;margin:8px 2px">下のパーツを選んで、上から見た図の置く場所をタップ（下が正面）。まちがえると♥が減ります。</p>
+</main>
+<nav class="tray"><div id="tray"></div></nav>
+<canvas id="fx"></canvas>
+<div class="over" id="over"><div class="card" id="overCard"></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {wirePrint} from './print3d.js';
+
+const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー'};
+const col = c => PAL[c] ? c : 'black';
+const rgb = c => PAL[col(c)];
+const css = c => `rgb(${rgb(c).join(',')})`;
+const dims = b => { const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]); const w = Math.max(...xs) - Math.min(...xs) + 1, h = Math.max(...zs) - Math.min(...zs) + 1; return [Math.min(w, h), Math.max(w, h)]; };
+const kind = b => b.shape === 'round' ? 'round' : b.shape.startsWith('slope') ? 'slope' : dims(b).join('x');
+const key = b => col(b.col) + '|' + kind(b);   // 向きは問わない（回して置ける）
+const kindName = k => k === 'round' ? '丸1×1' : k === 'slope' ? '斜め1×2' : k.replace('x', '×');
+document.title = `${CH.name}ミニナノ ゲーム`;
+document.getElementById('h1').textContent = document.title;
+
+const $ = id => document.getElementById(id), $id = $;
+// ---- 状態 ----
+const placed = new Set();
+let layer = 0, hearts = 3, hints = 3, sel = null, guideOn = true, blinkOn = false, t0 = 0, tEnd = 0, over = false, hintUntil = 0, missAt = null;
+const layerBricks = y => P.bricks.filter(b => b.y === y);
+const left = y => layerBricks(y).filter(b => !placed.has(b));
+const bestKey = () => `mininano-best-${CH.key}-${!guideOn ? 'n' : blinkOn ? 'g' : 'p'}`;
+const guideName = () => !guideOn ? 'ガイドなし' : blinkOn ? 'ガイド点滅' : 'ガイドあり';
+
+// ---- 上から見た図 ----
+const cv = document.getElementById('plan2d'), ctx = cv.getContext('2d');
+const CELL = 44, PAD = 8;
+const cells0 = P.bricks.flatMap(b => b.cells);   // 図は体のある範囲だけにして、マスを大きく見せる
+const X0 = Math.min(...cells0.map(c => c[0])), X1 = Math.max(...cells0.map(c => c[0])), Z0 = Math.min(...cells0.map(c => c[2])), Z1 = Math.max(...cells0.map(c => c[2]));
+const GW = X1 - X0 + 1, GD = Z1 - Z0 + 1;
+cv.width = GW * CELL + PAD * 2; cv.height = GD * CELL + PAD * 2;
+const xy = (x, z) => [PAD + (x - X0) * CELL, PAD + (Z1 - z) * CELL];
+function rect(b) {
+  const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
+  const [X0, Y0] = xy(Math.min(...xs), Math.max(...zs)), [X1, Y1] = xy(Math.max(...xs), Math.min(...zs));
+  return [X0 + 2, Y0 + 2, X1 + CELL - 4 - X0, Y1 + CELL - 4 - Y0];
+}
+function brickPath(b) { const [x, y, w, h] = rect(b); ctx.beginPath(); if (b.shape === 'round') ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 7); else ctx.roundRect(x, y, w, h, 6); }
+function draw2d(t) {
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = '#f0ebed'; ctx.lineWidth = 1;
+  for (let k = 0; k <= GW; k++) { ctx.beginPath(); ctx.moveTo(PAD + k * CELL, PAD); ctx.lineTo(PAD + k * CELL, PAD + GD * CELL); ctx.stroke(); }
+  for (let k = 0; k <= GD; k++) { ctx.beginPath(); ctx.moveTo(PAD, PAD + k * CELL); ctx.lineTo(PAD + GW * CELL, PAD + k * CELL); ctx.stroke(); }
+  ctx.strokeStyle = '#c8c8c8'; ctx.lineWidth = 1;
+  for (const b of layerBricks(layer - 1)) for (const [x, , z] of b.cells) { const [X, Y] = xy(x, z); ctx.strokeRect(X + 6, Y + 6, CELL - 12, CELL - 12); }
+  const showAll = t < hintUntil;
+  for (const b of layerBricks(layer)) {
+    if (placed.has(b)) { brickPath(b); ctx.fillStyle = css(b.col); ctx.fill(); ctx.strokeStyle = '#141414'; ctx.lineWidth = 2.5; ctx.stroke(); continue; }
+    const match = sel && key(b) === sel && (blinkOn || showAll);   // 点滅は「ガイド点滅」と💡のときだけ
+    if (showAll || guideOn) {   // ガイド：置く場所を色の点線で見せる。選んだパーツが合う場所は点滅
+      brickPath(b); ctx.globalAlpha = showAll ? .8 : match ? .25 + .35 * Math.sin(t / 200) ** 2 : .18; ctx.fillStyle = css(b.col); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.setLineDash([6, 5]); ctx.strokeStyle = match ? '#e65f91' : '#9a8f94'; ctx.lineWidth = match ? 4 : 2; ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  if (missAt && t - missAt.t < 500) { const [X, Y] = xy(missAt.x, missAt.z); ctx.strokeStyle = '#d32f2f'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(X + 10, Y + 10); ctx.lineTo(X + CELL - 10, Y + CELL - 10); ctx.moveTo(X + CELL - 10, Y + 10); ctx.lineTo(X + 10, Y + CELL - 10); ctx.stroke(); }
+}
+
+// ---- パーツ置き場（トレー）----
+function pieceIcon(k, c) {
+  const el = document.createElement('canvas'), [a, b] = k === 'round' || k === 'slope' ? (k === 'slope' ? [1, 2] : [1, 1]) : k.split('x').map(Number);
+  const S = 14; el.width = b * S + 6; el.height = a * S + 6; const g = el.getContext('2d');
+  g.fillStyle = css(c); g.strokeStyle = '#141414'; g.lineWidth = 2; g.beginPath();
+  if (k === 'round') g.ellipse(el.width / 2, el.height / 2, S / 2, S / 2, 0, 0, 7); else g.roundRect(3, 3, b * S, a * S, 3);
+  g.fill(); g.stroke();
+  g.strokeStyle = rgb(c).reduce((s, v) => s + v, 0) > 300 ? '#0006' : '#fff9'; g.lineWidth = 1.2;
+  for (let i = 0; i < b; i++) for (let j = 0; j < a; j++) { g.beginPath(); g.arc(3 + (i + .5) * S, 3 + (j + .5) * S, S * .22, 0, 7); g.stroke(); }
+  return el;
+}
+function drawTray() {
+  const m = new Map();
+  for (const b of left(layer)) m.set(key(b), (m.get(key(b)) || 0) + 1);
+  if (sel && !m.has(sel)) sel = null;
+  if (!sel && m.size === 1) sel = [...m.keys()][0];
+  const tray = document.getElementById('tray'); tray.innerHTML = '';
+  for (const [k, n] of [...m].sort()) {
+    const [c, kd] = k.split('|'), btn = document.createElement('button');
+    btn.className = k === sel ? 'sel' : ''; btn.append(pieceIcon(kd, c));
+    btn.insertAdjacentHTML('beforeend', `<span>${JNAME[c]} ${kindName(kd)}</span><span>×${n}</span>`);
+    btn.onclick = () => { sel = k; drawTray(); };
+    tray.append(btn);
+  }
+}
+
+// ---- 3D ----
+const box = document.getElementById('view3d');
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf4f1ec);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
+const ren = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}); ren.setPixelRatio(devicePixelRatio); box.append(ren.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.5));
+const dl = new THREE.DirectionalLight(0xffffff, 1.4); dl.position.set(20, 40, 30); scene.add(dl);
+const lineMat = new THREE.LineBasicMaterial({color: 0x111111});
+const stud = new THREE.CylinderGeometry(0.3, 0.3, 0.22, 14);
+const ghostMat = new THREE.MeshBasicMaterial({color: 0x9a8f94, transparent: true, opacity: .12, depthWrite: false});
+const obj = new Map();
+for (const b of P.bricks) {
+  const mat = new THREE.MeshLambertMaterial({color: new THREE.Color(...rgb(b.col).map(v => v / 255))});
+  const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), g = 0.07;
+  const geo = b.shape === 'round' ? new THREE.CylinderGeometry(0.46, 0.46, A - g, 20) : new THREE.BoxGeometry(x1 - x0 + 1 - g, A - g, z1 - z0 + 1 - g);
+  const grp = new THREE.Group(); grp.position.set((x0 + x1) / 2 - W / 2, b.y * A, -((z0 + z1) / 2 - D / 2));
+  grp.add(new THREE.Mesh(geo, mat), new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));
+  for (const [x, , z] of b.cells) { const s = new THREE.Mesh(stud, mat); s.position.set(x - W / 2 - grp.position.x, A / 2 + 0.08, -(z - D / 2) - grp.position.z); grp.add(s); }
+  const ghost = new THREE.Mesh(geo, ghostMat); ghost.position.copy(grp.position);
+  grp.visible = false; scene.add(grp, ghost); obj.set(b, {grp, ghost, y0: grp.position.y, drop: 0});
+}
+const cells = P.bricks.flatMap(b => b.cells), mx = cells.reduce((s, c) => s + c[0], 0) / cells.length - W / 2, mz = -(cells.reduce((s, c) => s + c[2], 0) / cells.length - D / 2);
+const ctl = new OrbitControls(cam, ren.domElement); ctl.enableDamping = true; ctl.enablePan = false;
+ctl.target.set(mx, 2, mz); cam.position.set(mx + 9, 14, mz + 20);
+let spin = false;
+function resize() { const w = box.clientWidth, h = box.clientHeight; if (w && h) { ren.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } }
+new ResizeObserver(resize).observe(box); resize();
+function refresh3d() { for (const [b, o] of obj) { o.grp.visible = placed.has(b); o.ghost.visible = !placed.has(b) && guideOn && b.y === layer; } }
+
+// ---- 効果音（ファイルなし、その場で鳴らす） ----
+let actx = null, soundOn = localStorage.getItem('mininano-sound') !== 'off';
+function tone(f, t, len, type = 'sine', vol = .25) {
+  const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + len); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + len);
+}
+function sfx(name, n = 1) {
+  if (!soundOn) return;
+  actx ||= new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume();
+  const t = actx.currentTime;
+  if (name === 'place') { const f = 520 * Math.pow(2, Math.min(n - 1, 12) / 12); tone(f * 2, t, .05, 'square', .08); tone(f, t, .12, 'triangle', .3); }   // カチッ（コンボで音が上がる）
+  if (name === 'miss') { tone(180, t, .18, 'sawtooth', .12); tone(140, t + .1, .22, 'sawtooth', .12); }
+  if (name === 'layer') [660, 830, 990].forEach((f, i) => tone(f, t + i * .07, .18, 'triangle', .22));
+  if (name === 'clear') [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, t + i * .11, i === 5 ? .6 : .2, 'triangle', .25));
+}
+$id('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+$id('soundBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('mininano-sound', soundOn ? 'on' : 'off'); $id('soundBtn').textContent = soundOn ? '🔊' : '🔇'; sfx('place'); };
+
+// ---- 紙吹雪 ----
+const fx = $id('fx'), fg = fx.getContext('2d'), bits = [];
+const FXC = ['#e65f91', '#ffcf4a', '#5bc0eb', '#7bd389', '#b28dff', '#ff8a5b'];
+function confetti(x, y, n, power = 1) {
+  for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = (2 + Math.random() * 5) * power;
+    bits.push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4 * power, r: Math.random() * 6, vr: (Math.random() - .5) * .4, s: 5 + Math.random() * 5, c: FXC[i % FXC.length], life: 1}); }
+}
+function drawFx() {
+  if (fx.width !== innerWidth * devicePixelRatio) { fx.width = innerWidth * devicePixelRatio; fx.height = innerHeight * devicePixelRatio; }
+  fg.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); fg.clearRect(0, 0, innerWidth, innerHeight);
+  for (let i = bits.length - 1; i >= 0; i--) { const b = bits[i];
+    b.vy += .18; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.r += b.vr; b.life -= .008;
+    if (b.life <= 0 || b.y > innerHeight + 20) { bits.splice(i, 1); continue; }
+    fg.save(); fg.globalAlpha = Math.min(1, b.life * 2); fg.translate(b.x, b.y); fg.rotate(b.r); fg.fillStyle = b.c; fg.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); fg.restore(); }
+}
+const center = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+
+// ---- コンボ ----
+let combo = 0;
+function showCombo() {
+  if (combo < 3) return;
+  const el = $id('combo'); el.textContent = `${combo}コンボ！` + (combo >= 10 ? '🔥' : combo >= 5 ? '✨' : '');
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+
+// ---- 進行 ----
+function say(s) { $('msg').textContent = s; clearTimeout(say.t); say.t = setTimeout(() => $('msg').textContent = '', 1400); }
+function updateStatus() {
+  $('layerNo').textContent = `${layer + 1}段目`;
+  $('layerSub').textContent = `のこり${left(layer).length}個 / 全${H}段`;
+  $('hearts').textContent = '♥'.repeat(hearts) + '♡'.repeat(3 - hearts);
+  $('hintBtn').textContent = `💡 ${hints}`; $('hintBtn').disabled = hints === 0;
+}
+function startLayer(y) { layer = y; sel = null; drawTray(); updateStatus(); refresh3d(); if (y) { const el = $('layerNo'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); } }
+function tap(e) {
+  if (over) return;
+  const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+  const x = X0 + Math.floor((px - PAD) / CELL), z = Z1 - Math.floor((py - PAD) / CELL);
+  if (x < X0 || x > X1 || z < Z0 || z > Z1) return;
+  if (!sel) { say('先にパーツを選んでね'); return; }
+  if (!t0) t0 = performance.now();
+  const b = left(layer).find(b => b.cells.some(c => c[0] === x && c[2] === z));
+  if (b && key(b) === sel) {
+    placed.add(b); const o = obj.get(b); o.drop = 1; refresh3d();
+    combo++; sfx('place', combo); showCombo(); navigator.vibrate?.(15);
+    if (!left(layer).length) {
+      if (layer === H - 1) { updateStatus(); $('tray').innerHTML = ''; return clear(); }
+      say(`${layer + 1}段目クリア！`); setTimeout(() => sfx('layer'), 120); confetti(...center(cv), 36, .8); setTimeout(() => startLayer(layer + 1), 350);
+    }
+    drawTray(); updateStatus();
+  } else {
+    hearts--; combo = 0; sfx('miss'); missAt = {x, z, t: performance.now()}; navigator.vibrate?.([60, 40, 60]);
+    cv.classList.remove('shake'); void cv.offsetWidth; cv.classList.add('shake');
+    say(b ? 'ちがうパーツです' : 'そこじゃないよ'); updateStatus();
+    if (!hearts) gameOver();
+  }
+}
+cv.addEventListener('pointerdown', tap);
+function setGuide() { $('guideBtn').textContent = guideName(); $('guideBtn').classList.toggle('on', guideOn); refresh3d(); }
+$('guideBtn').onclick = () => {   // あり → 点滅 → なし → あり
+  if (t0) return say('組み始めたら切りかえできません');
+  if (guideOn && !blinkOn) blinkOn = true; else if (guideOn) { guideOn = false; blinkOn = false; } else guideOn = true;
+  setGuide(); say(guideOn ? blinkOn ? '合う場所が光ります' : '形と色はヒントだけ' : '図だけで勝負！');
+};
+setGuide();
+$('hintBtn').onclick = () => { if (!hints || over) return; hints--; hintUntil = performance.now() + 1500; updateStatus(); };
+const fmt = ms => (ms / 1000).toFixed(1);
+function overlay(html) { $('overCard').innerHTML = html; $('over').style.display = 'flex'; }
+function gameOver() {
+  over = true;
+  overlay(`<h2>ざんねん…</h2><p>${layer + 1}段目で♥がなくなりました</p><button onclick="location.reload()">もう一度</button><a class="sub" href="./?plan=${CH.key}">組立ガイドで確かめる</a>`);
+}
+function clear() {
+  over = true; tEnd = performance.now(); const ms = tEnd - t0;
+  const prev = +localStorage.getItem(bestKey()) || 0, best = !prev || ms < prev;
+  if (best) localStorage.setItem(bestKey(), Math.round(ms));
+  for (const o of obj.values()) o.ghost.visible = false;
+  spin = true; ctl.target.set(mx, H * A / 2, mz);
+  sfx('clear'); const [cx, cy] = center(box); confetti(cx, cy, 90, 1.3); setTimeout(() => { confetti(innerWidth * .2, innerHeight * .4, 50, 1.1); confetti(innerWidth * .8, innerHeight * .4, 50, 1.1); }, 400);
+  setTimeout(() => {
+    const img = shareImage(ms);
+    overlay(`<h2>完成！🎉</h2><img src="${img}" alt=""><p><b style="font-size:22px">${fmt(ms)}秒</b>　${'♥'.repeat(hearts)}${'♡'.repeat(3 - hearts)}</p>
+      <p style="font-size:13px;color:#7a6e73">${best ? 'じこベスト更新！' : `じこベスト ${fmt(prev)}秒`}（${guideName()}）</p>
+      <button id="shareBtn">シェアする</button><div class="row"><button class="sub" id="savePdf">組立図 PDF</button><button class="sub" id="printGuide">組立図を印刷</button></div><p id="printStatus" style="font-size:13px;color:#7a6e73" hidden></p><button class="sub" onclick="location.reload()">もう一度</button><a class="sub" href="./">キャラを選ぶ</a>`);
+    $('shareBtn').onclick = () => share(img, ms);
+    wirePrint({P, CH, pdfBtn: $('savePdf'), printBtn: $('printGuide'), status: $('printStatus')});
+  }, 1200);
+}
+function shareImage(ms) {   // 3Dの絵＋タイムを1枚に
+  const c = document.createElement('canvas'); c.width = 600; c.height = 700; const g = c.getContext('2d');
+  g.fillStyle = '#f4f1ec'; g.fillRect(0, 0, 600, 700);
+  const s = ren.domElement, k = Math.min(560 / s.width, 520 / s.height);
+  g.drawImage(s, (600 - s.width * k) / 2, 70, s.width * k, s.height * k);
+  g.fillStyle = '#3c3237'; g.textAlign = 'center'; g.font = 'bold 34px sans-serif'; g.fillText(`${CH.name}ミニナノ 完成！`, 300, 50);
+  g.fillStyle = '#e65f91'; g.font = 'bold 40px sans-serif'; g.fillText(`${fmt(ms)}秒  ${'♥'.repeat(hearts)}`, 300, 640);
+  g.fillStyle = '#7a6e73'; g.font = '22px sans-serif'; g.fillText(`全${P.bricks.length}個・${guideName()}　#naoblock`, 300, 680);
+  return c.toDataURL('image/png');
+}
+async function share(img, ms) {
+  const text = `${CH.name}ミニナノを${fmt(ms)}秒で組み立てた！ #naoblock`;
+  try {
+    const file = new File([await (await fetch(img)).blob()], 'mininano.png', {type: 'image/png'});
+    if (navigator.canShare?.({files: [file]})) return await navigator.share({files: [file], text});
+    if (navigator.share) return await navigator.share({text, url: location.href});
+  } catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = img; a.download = 'mininano.png'; a.click();
+}
+
+// ---- 毎フレーム ----
+(function loop(t) {
+  t ||= 0;
+  if (t0 && !over) $('timer').textContent = fmt(performance.now() - t0);
+  const ty = spin ? H * A / 2 : Math.min(H * A * .55, layer * A + 1);
+  ctl.target.y += (ty - ctl.target.y) * .06;
+  const want = spin ? 30 : Math.min(28, 16 + layer * A * .9), off = cam.position.clone().sub(ctl.target), len = off.length();
+  off.setLength(len + (want - len) * .06); cam.position.copy(ctl.target).add(off);
+  if (spin) { const a = .006, x = cam.position.x - mx, z = cam.position.z - mz; cam.position.x = mx + x * Math.cos(a) - z * Math.sin(a); cam.position.z = mz + x * Math.sin(a) + z * Math.cos(a); }
+  for (const o of obj.values()) {
+    if (o.drop > 0) { o.drop = Math.max(0, o.drop - .08); o.grp.position.y = o.y0 + o.drop * o.drop * 3; if (!o.drop) o.bounce = 1; }   // 上から落ちてくる
+    else if (o.bounce > 0) { o.bounce = Math.max(0, o.bounce - .07); const k = Math.sin(o.bounce * Math.PI * 2) * o.bounce * .18; o.grp.scale.set(1 + k * .6, 1 - k, 1 + k * .6); }   // 着地でぽよんと弾む
+  }
+  drawFx();
+  draw2d(t);
+  ctl.update(); ren.render(scene, cam); requestAnimationFrame(loop);
+})();
+startLayer(0);
+window.__game = {placed, left: () => left(layer), key, get layer() { return layer; }, tapCell: (x, z) => { const r = cv.getBoundingClientRect(); const [X, Y] = xy(x, z); tap({clientX: r.left + (X + CELL / 2) * r.width / cv.width, clientY: r.top + (Y + CELL / 2) * r.height / cv.height}); }, select: k => { sel = k; drawTray(); }};
+</script>
+</body></html>

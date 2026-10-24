@@ -1,0 +1,20 @@
+/* 印刷用の組立図（A4 縦）。画面の部品は印刷せず、#print-root だけを出す。
+   中身はアプリが描いたページの絵（余白 12mm は絵の中に描き込み済み）なので、用紙の余白は 0 にして絵を用紙いっぱいに置く */
+@page { size: A4 portrait; margin: 0; }
+
+html, body { background: #fff !important; height: auto; margin: 0 !important; padding: 0 !important; }
+body > :not(#print-root) { display: none !important; }
+#print-root { display: block !important; margin: 0; padding: 0; }
+#print-root img {
+  display: block;
+  /* 297mm ちょうどだと端数で白紙のページが増えることがあるので、少しだけ小さく（縦横比はそのまま） */
+  width: auto;
+  height: 296mm;
+  margin: 0 auto;
+  break-after: page;
+  page-break-after: always;
+  break-inside: avoid;
+}
+#print-root img:last-child { break-after: auto; page-break-after: auto; }
+
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

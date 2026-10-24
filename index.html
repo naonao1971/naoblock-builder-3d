@@ -1,0 +1,304 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ミニナノ 組立ガイド</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#f4f1ec;color:#3c3237;font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;-webkit-tap-highlight-color:transparent}
+header{display:flex;align-items:center;gap:8px;padding:10px 12px 4px;max-width:980px;margin:0 auto}
+header h1{margin:0;font-size:18px;flex:1}
+header a{font-size:14px;color:#c2185b;text-decoration:none}
+main{max-width:980px;margin:0 auto;padding:4px 12px 110px}
+.card{background:#fff;border-radius:16px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.note{font-size:12px;color:#7a6e73;margin:6px 0 0}
+/* キャラ選び */
+#select h2{font-size:16px;margin:12px 0 8px;text-align:center}
+.chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.chars .card{text-align:center}
+.chars .go{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.chars .go a{display:block;padding:9px 0;border-radius:10px;background:#e65f91;color:#fff;font-size:13px;font-weight:700;text-decoration:none}
+.chars .go a.g{background:#5b6bd6}
+.chars img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#f4f1ec;border-radius:12px}
+.chars b{display:block;font-size:17px;margin-top:6px}
+/* 組立 */
+#guide{display:none}
+.bar{height:8px;background:#eadfe3;border-radius:99px;overflow:hidden;margin:4px 0 8px}
+.bar i{display:block;height:100%;background:#e65f91;width:0;transition:width .2s}
+.layout{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}
+@media (max-width:720px){.layout{grid-template-columns:1fr}}
+#view3d{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f4f1ec;touch-action:none;position:relative}
+#auto{position:absolute;right:8px;top:8px;font:inherit;font-size:12px;border:1px solid #e3dbde;background:#fffc;border-radius:99px;padding:4px 10px;color:#7a6e73}
+#auto.on{background:#e65f91;color:#fff;border-color:#e65f91}
+.side{display:flex;flex-direction:column;gap:12px}
+@media (max-width:720px){.side{display:grid;grid-template-columns:1fr 1fr}}
+.where{font-size:13px;color:#7a6e73}
+.where b{font-size:20px;color:#3c3237}
+#pieceIcon{display:block;margin:8px auto;max-width:100%}
+#pieceName{text-align:center;font-size:18px;font-weight:700}
+#tip{display:none;margin-top:8px;padding:8px;border-radius:10px;background:#fff3cd;font-size:13px;line-height:1.5}
+#plan2d{width:100%;max-width:100%;height:auto;display:block}
+.layout>*,.side>*{min-width:0}   /* 中の絵の幅で列が広がらないように */
+@media (max-width:720px){#view3d{aspect-ratio:4/3}}   /* スマホは3Dを横長にして、下のパーツ名まで1画面に入れる */
+#view3d canvas{display:block;width:100%!important;height:100%!important}
+.nav{position:fixed;left:0;right:0;bottom:0;background:#fffe;backdrop-filter:blur(6px);border-top:1px solid #eadfe3;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+.nav div{max-width:980px;margin:0 auto;display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.nav button{font:inherit;font-size:18px;font-weight:700;border:0;border-radius:14px;height:56px;background:#e65f91;color:#fff}
+.nav button#prev{background:#eadfe3;color:#3c3237}
+.nav button:disabled{opacity:.4}
+#done{display:none;text-align:center;padding:8px 0}
+#done b{font-size:24px;color:#e65f91}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:6px 4px;border-bottom:1px solid #eee;text-align:left}
+td.n{text-align:right;font-weight:700}
+.sw{display:inline-block;vertical-align:middle;width:16px;height:16px;border-radius:4px;border:1px solid #0003}
+details{margin-top:12px}
+summary{font-weight:700;cursor:pointer}
+.print-card .btns{display:flex;gap:8px;margin:8px 0}
+.print-card button{flex:1;font:inherit;font-size:15px;font-weight:700;border:0;border-radius:12px;padding:12px;background:#eadfe3;color:#3c3237}
+.print-card button.primary{background:#e65f91;color:#fff}
+.print-card button:disabled{opacity:.5}
+</style>
+<link rel="stylesheet" href="print.css" media="print">
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script>
+  // ?plan=nemu で plan_nemu.js を読む。plan なしはキャラ選び
+  const CHARS = [{key: 'sakuya', name: '咲耶', file: 'plan'}, {key: 'nemu', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', name: 'シャオラン', file: 'plan_xiaolan'}];
+  const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan'));
+  if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
+</script>
+</head><body>
+<header><h1 id="h1">ミニナノ 組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
+<main>
+  <section id="select">
+    <h2>どの子を組みますか？</h2>
+    <div class="chars" id="chars"></div>
+    <p class="note" style="text-align:center">組立ガイド：実物を組むときに、1個ずつ置く場所を光らせて案内します。<br>ゲーム：画面の上でパーツを選んで置きます。♥3つでタイムに挑戦。<br>ミニナノのケース（プレートなし）に入る大きさです。</p>
+  </section>
+
+  <section id="guide">
+    <div class="where"><b id="stepNo"></b>　<span id="stepSub"></span></div>
+    <div class="bar"><i id="barIn"></i></div>
+    <div class="layout">
+      <div class="card"><div id="view3d"><button id="auto" class="on">自動で回す</button></div>
+        <p class="note">光っているところに置きます。指で回せます。</p></div>
+      <div class="side">
+        <div class="card">
+          <div id="pieceName"></div>
+          <canvas id="pieceIcon" width="200" height="120"></canvas>
+          <div id="tip"></div>
+          <div id="done"><b>完成！</b><p>おつかれさまでした🎉</p></div>
+        </div>
+        <div class="card">
+          <div class="where" id="t2d"></div>
+          <canvas id="plan2d"></canvas>
+          <p class="note">上から見た図（下が正面）。うすい枠は1つ下の段。</p>
+        </div>
+      </div>
+    </div>
+    <details class="card"><summary>買い物リスト</summary>
+      <table id="shop"></table><p class="note" id="shopTotal"></p>
+      <p class="note">どれも「カワダ公式ストア」の単色部品（1袋220円）です。</p>
+    </details>
+    <div class="card print-card"><b>組立図（A4）</b>
+      <div class="btns"><button id="savePdf" class="primary">PDF で保存</button><button id="printGuide">プリンターで印刷</button></div>
+      <p class="note">表紙・部品リスト・買い物リスト・1段ずつの組立図です。PDF もプリンターも同じ中身です。</p><p class="note" id="printStatus" hidden></p></div>
+  </section>
+</main>
+<nav class="nav" id="nav" style="display:none"><div><button id="prev">◀ 戻る</button><button id="next">次へ ▶</button></div></nav>
+
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {wirePrint} from './print3d.js';
+
+if (!CH) {   // ---- キャラ選び ----
+  document.getElementById('chars').innerHTML = CHARS.map(c =>
+    `<div class="card"><img src="thumb_${c.key}.png" alt="${c.name}"><b>${c.name}</b><div class="go"><a href="?plan=${c.key}">組立ガイド</a><a class="g" href="game.html?plan=${c.key}">ゲーム</a></div></div>`).join('');
+} else guide();
+function guide() {
+
+const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
+window.__print = wirePrint({P, CH, pdfBtn: document.getElementById('savePdf'), printBtn: document.getElementById('printGuide'), status: document.getElementById('printStatus')});
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー'};
+const col = c => PAL[c] ? c : 'black';   // 見えない中身はブラックで組む
+const rgb = c => PAL[col(c)];
+const css = c => `rgb(${rgb(c).join(',')})`;
+const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : s.replace(/[xz]$/, '').replace('x', '×');
+const shopShape = s => s === 'round' ? '1×1R' : s.startsWith('slope') ? 'スロープ 1×2' : shapeName(s);
+document.title = `${CH.name}ミニナノ 組立ガイド`;
+document.getElementById('h1').textContent = document.title;
+document.getElementById('select').style.display = 'none';
+document.getElementById('guide').style.display = 'block';
+document.getElementById('nav').style.display = 'block';
+document.getElementById('back').style.display = 'inline';
+
+// ---- 手順：1個ずつ。下に何もないパーツ（宙づり・あごの斜め）は、1つ上の段を組んだあとに下から差し込む ----
+const occ = new Set(P.bricks.flatMap(b => b.cells.map(c => c.join())));
+const hanging = b => b.y > 0 && !b.cells.some(([x, y, z]) => occ.has([x, y - 1, z].join()));
+const steps = [];
+for (let y = 0; y < H; y++) {
+  const layer = P.bricks.filter(b => b.y === y && !hanging(b));
+  layer.sort((a, b) => Math.max(...b.cells.map(c => c[2])) - Math.max(...a.cells.map(c => c[2])) || Math.min(...a.cells.map(c => c[0])) - Math.min(...b.cells.map(c => c[0])));   // 奥から手前、左から右
+  layer.forEach(b => steps.push({b, y}));
+  P.bricks.filter(b => b.y === y - 1 && hanging(b)).forEach(b => steps.push({b, y: b.y, under: true}));
+}
+const layerSteps = y => steps.filter(s => s.y === y);
+
+// ---- 買い物リスト ----
+(() => {
+  const m = new Map();
+  for (const b of P.bricks) { const k = col(b.col) + '|' + b.shape.replace(/[xz]$/, ''); m.set(k, (m.get(k) || 0) + 1); }
+  const rows = [...m].map(([k, n]) => { const [c, s] = k.split('|'); return {c, s, n}; }).sort((a, b) => a.c.localeCompare(b.c) || a.s.localeCompare(b.s));
+  const q = r => encodeURIComponent(`ナノブロック 単色部品 ${shopShape(r.s)} ${JNAME[r.c]}`);
+  document.getElementById('shop').innerHTML = '<tr><th>色</th><th>形</th><th>数</th><th></th></tr>' + rows.map(r =>
+    `<tr><td><span class="sw" style="background:${css(r.c)}"></span> ${JNAME[r.c]}</td><td>${shapeName(r.s)}</td><td class="n">${r.n}</td><td><a href="https://search.rakuten.co.jp/search/mall/${q(r)}/?sid=diablock" target="_blank" rel="noopener">楽天</a></td></tr>`).join('');
+  document.getElementById('shopTotal').textContent = `全${P.bricks.length}個・${rows.length}袋・約${(rows.length * 220).toLocaleString()}円`;
+})();
+
+// ---- パーツの絵（上から見たポッチ）----
+const pic = document.getElementById('pieceIcon'), pc = pic.getContext('2d');
+function drawPiece(b) {
+  const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
+  let w = Math.max(...xs) - Math.min(...xs) + 1, h = Math.max(...zs) - Math.min(...zs) + 1;
+  if (h > w) [w, h] = [h, w];   // 横長に描く
+  const S = Math.min(36, 180 / w), x0 = (pic.width - w * S) / 2, y0 = (pic.height - h * S) / 2;
+  pc.clearRect(0, 0, pic.width, pic.height);
+  pc.fillStyle = css(b.col); pc.strokeStyle = '#141414'; pc.lineWidth = 3;
+  pc.beginPath();
+  if (b.shape === 'round') pc.ellipse(pic.width / 2, pic.height / 2, S / 2, S / 2, 0, 0, 7); else pc.roundRect(x0, y0, w * S, h * S, 6);
+  pc.fill(); pc.stroke();
+  pc.strokeStyle = rgb(b.col).reduce((s, v) => s + v, 0) > 300 ? '#0006' : '#fff9'; pc.lineWidth = 2;
+  for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) { pc.beginPath(); pc.arc(x0 + (i + .5) * S, y0 + (j + .5) * S, S * .22, 0, 7); pc.stroke(); }
+}
+
+// ---- 上から見た図 ----
+const cv = document.getElementById('plan2d'), ctx = cv.getContext('2d');
+const CELL = 40, PAD = 10;
+cv.width = W * CELL + PAD * 2; cv.height = D * CELL + PAD * 2;
+const xy = (x, z) => [PAD + x * CELL, PAD + (D - 1 - z) * CELL];
+function rect(b) {
+  const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
+  const [X0, Y0] = xy(Math.min(...xs), Math.max(...zs)), [X1, Y1] = xy(Math.max(...xs), Math.min(...zs));
+  return [X0 + 2, Y0 + 2, X1 + CELL - 4 - X0, Y1 + CELL - 4 - Y0];
+}
+function draw2d(i, t) {
+  const {b: cur, y} = steps[i];
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = '#f0ebed'; ctx.lineWidth = 1;
+  for (let k = 0; k <= W; k++) { ctx.beginPath(); ctx.moveTo(PAD + k * CELL, PAD); ctx.lineTo(PAD + k * CELL, PAD + D * CELL); ctx.stroke(); }
+  for (let k = 0; k <= D; k++) { ctx.beginPath(); ctx.moveTo(PAD, PAD + k * CELL); ctx.lineTo(PAD + W * CELL, PAD + k * CELL); ctx.stroke(); }
+  ctx.strokeStyle = '#c8c8c8';
+  for (const b of P.bricks) if (b.y === y - 1) for (const [x, , z] of b.cells) { const [X, Y] = xy(x, z); ctx.strokeRect(X + 5, Y + 5, CELL - 10, CELL - 10); }
+  for (let k = 0; k <= i; k++) {
+    const b = steps[k].b; if (b.y !== y) continue;
+    const [x, yy, w, h] = rect(b), now = k === i;
+    ctx.globalAlpha = now ? .55 + .45 * Math.sin(t / 180) ** 2 : 1;
+    ctx.fillStyle = css(b.col); ctx.beginPath(); ctx.roundRect(x, yy, w, h, 5); ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = now ? '#e65f91' : '#141414'; ctx.lineWidth = now ? 6 : 2.5; ctx.stroke();
+  }
+}
+
+// ---- 3D ----
+const box = document.getElementById('view3d');
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf4f1ec);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
+const ren = new THREE.WebGLRenderer({antialias: true}); ren.setPixelRatio(devicePixelRatio); box.prepend(ren.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.5));
+const dl = new THREE.DirectionalLight(0xffffff, 1.4); dl.position.set(20, 40, 30); scene.add(dl);
+const lineMat = new THREE.LineBasicMaterial({color: 0x111111});
+const stud = new THREE.CylinderGeometry(0.3, 0.3, 0.22, 14);
+const ghostMat = new THREE.MeshBasicMaterial({color: 0x9a8f94, transparent: true, opacity: .1, depthWrite: false});   // まだ置いていないパーツ
+const glowMat = new THREE.MeshBasicMaterial({color: 0xff2d7a, transparent: true, opacity: .3, depthWrite: false});
+const brickObj = new Map();
+for (const b of P.bricks) {
+  const mat = new THREE.MeshLambertMaterial({color: new THREE.Color(...rgb(b.col).map(v => v / 255))});
+  const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), g = 0.07;
+  const geo = b.shape === 'round' ? new THREE.CylinderGeometry(0.46, 0.46, A - g, 20) : new THREE.BoxGeometry(x1 - x0 + 1 - g, A - g, z1 - z0 + 1 - g);
+  const grp = new THREE.Group();
+  grp.position.set((x0 + x1) / 2 - W / 2, b.y * A, -((z0 + z1) / 2 - D / 2));
+  grp.add(new THREE.Mesh(geo, mat), new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));
+  for (const [x, , z] of b.cells) { const s = new THREE.Mesh(stud, mat); s.position.set(x - W / 2 - grp.position.x, A / 2 + 0.08, -(z - D / 2) - grp.position.z); grp.add(s); }
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0 + 1.3, A + .3, z1 - z0 + 1.3), glowMat); glow.visible = false; grp.add(glow);
+  const ghost = new THREE.Mesh(geo, ghostMat); ghost.position.copy(grp.position); scene.add(ghost);
+  scene.add(grp); brickObj.set(b, {grp, glow, ghost, mat, c: new THREE.Vector3((x0 + x1) / 2 - W / 2, b.y * A, -((z0 + z1) / 2 - D / 2))});
+}
+const cells = P.bricks.flatMap(b => b.cells), mx = cells.reduce((s, c) => s + c[0], 0) / cells.length - W / 2, mz = -(cells.reduce((s, c) => s + c[2], 0) / cells.length - D / 2);
+const ctl = new OrbitControls(cam, ren.domElement); ctl.enableDamping = true; ctl.enablePan = false;
+ctl.target.set(mx, H * A / 2, mz);
+const DEF_AZ = .45;
+cam.position.set(mx + 20 * Math.sin(DEF_AZ), H * A / 2 + 12, mz + 20 * Math.cos(DEF_AZ));
+const autoBtn = document.getElementById('auto');
+let auto = true, goal = {az: DEF_AZ, el: .5, ty: H * A / 2, r: 24};
+autoBtn.onclick = () => { auto = !auto; autoBtn.classList.toggle('on', auto); };
+ctl.addEventListener('start', () => { auto = false; autoBtn.classList.remove('on'); });
+function aim(s) {   // パーツが見える向き：体の中心から見て、パーツのある側へ回る
+  const c = brickObj.get(s.b).c, dx = c.x - mx, dz = c.z - mz;
+  goal.az = Math.hypot(dx, dz) < 1.2 ? DEF_AZ : Math.atan2(dx, dz);
+  goal.el = s.under ? -.55 : .55;
+  goal.ty = Math.min(H * A * .55, s.y * A + 1);
+  goal.r = Math.min(30, 18 + s.y * A * .9);   // 組み始めは寄る
+}
+function resize() { const w = box.clientWidth, h = box.clientHeight; if (w && h) { ren.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } }
+new ResizeObserver(resize).observe(box); resize();
+
+// ---- 手順の切りかえ ----
+let cur = 0, finished = false;
+function show(i) {
+  cur = Math.max(0, Math.min(steps.length - 1, i)); finished = false;
+  const s = steps[cur], ls = layerSteps(s.y), k = ls.indexOf(s) + 1;
+  for (const [b, o] of brickObj) { const idx = steps.findIndex(t => t.b === b); o.grp.visible = idx <= cur; o.ghost.visible = idx > cur; o.glow.visible = idx === cur; o.grp.position.y = o.c.y; }
+  document.getElementById('stepNo').textContent = `${s.y + 1}段目${s.under ? '（下から）' : ''}`;
+  document.getElementById('stepSub').textContent = `${k}/${ls.length}個目 ・ 全体 ${cur + 1}/${steps.length}`;
+  document.getElementById('barIn').style.width = `${(cur + 1) / steps.length * 100}%`;
+  document.getElementById('pieceName').textContent = `${JNAME[col(s.b.col)]} ${shapeName(s.b.shape)}`;
+  document.getElementById('t2d').textContent = `${s.y + 1}段目を上から`;
+  const tip = document.getElementById('tip');
+  tip.style.display = s.under ? 'block' : 'none';
+  tip.textContent = s.b.shape.startsWith('slope') ? '1つ上の段まで組んだので、下から差し込みます（斜めの面を下・前向きに）。'
+    : '下に乗る場所がないパーツです。1つ上の段まで組んだので、ひっくり返して下から差し込みます。';
+  document.getElementById('pieceIcon').style.display = 'block'; document.getElementById('pieceName').style.display = 'block';
+  document.getElementById('done').style.display = 'none';
+  document.getElementById('prev').disabled = cur === 0;
+  document.getElementById('next').textContent = cur === steps.length - 1 ? '完成 🎉' : '次へ ▶';
+  drawPiece(s.b);
+  auto = true; autoBtn.classList.add('on'); aim(s);
+  history.replaceState(null, '', `?plan=${CH.key}&step=${cur + 1}`);
+}
+function finish() {
+  finished = true;
+  for (const o of brickObj.values()) { o.grp.visible = true; o.ghost.visible = false; o.glow.visible = false; o.grp.position.y = o.c.y; }
+  ['pieceIcon', 'pieceName', 'tip'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('done').style.display = 'block';
+  document.getElementById('stepSub').textContent = `全${steps.length}個 組み終わりました`;
+  document.getElementById('barIn').style.width = '100%';
+  auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .35, ty: H * A / 2, r: 32, spin: true};
+}
+document.getElementById('prev').onclick = () => finished ? show(cur) : show(cur - 1);
+document.getElementById('next').onclick = () => cur === steps.length - 1 ? finish() : show(cur + 1);
+addEventListener('keydown', e => { if (e.key === 'ArrowLeft') document.getElementById('prev').click(); if (e.key === 'ArrowRight') document.getElementById('next').click(); });
+
+const sph = new THREE.Spherical();
+(function loop(t) {
+  if (auto) {
+    if (goal.spin) goal.az += .006;
+    const off = cam.position.clone().sub(ctl.target); sph.setFromVector3(off);
+    let daz = goal.az - sph.theta; daz = Math.atan2(Math.sin(daz), Math.cos(daz));
+    sph.theta += daz * .08;
+    sph.phi += (Math.PI / 2 - goal.el - sph.phi) * .08;
+    sph.radius += (goal.r - sph.radius) * .08;
+    ctl.target.y += (goal.ty - ctl.target.y) * .08;
+    cam.position.copy(ctl.target).add(new THREE.Vector3().setFromSpherical(sph));
+  }
+  glowMat.opacity = .15 + .3 * Math.sin((t || 0) / 180) ** 2;
+  if (!finished) {   // 次に置くパーツは、上からふわふわ下りてくる
+    const o = brickObj.get(steps[cur].b), up = steps[cur].under ? -1 : 1;
+    o.grp.position.y = o.c.y + up * .9 * Math.abs(Math.sin((t || 0) / 300));
+  }
+  if (!finished) draw2d(cur, t || 0);
+  ctl.update(); ren.render(scene, cam); requestAnimationFrame(loop);
+})();
+show((+new URLSearchParams(location.search).get('step') || 1) - 1);
+window.show = show;
+}
+</script>
+</body></html>
