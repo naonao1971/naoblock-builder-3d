@@ -64,6 +64,10 @@ summary{font-weight:700;cursor:pointer}
 .print-card button{flex:1;font:inherit;font-size:15px;font-weight:700;border:0;border-radius:12px;padding:12px;background:#eadfe3;color:#3c3237}
 .print-card button.primary{background:#e65f91;color:#fff}
 .print-card button:disabled{opacity:.5}
+.start-header{display:block;width:100%;height:auto;margin:4px 0 14px;border-radius:14px;background:#13235a}
+.legal{margin:28px 0 0;text-align:center;font-size:12px;color:#7a6e73}
+.legal p{margin:4px 0}
+.legal a{color:#c2185b;font-size:14px;font-weight:700}
 </style>
 <link rel="stylesheet" href="print.css" media="print">
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
@@ -77,6 +81,7 @@ summary{font-weight:700;cursor:pointer}
 <header><h1 id="h1">ミニナノ 組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
 <main>
   <section id="select">
+    <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がるミニナノを見ている絵">
     <h2>どの子を組みますか？</h2>
     <div class="chars" id="chars"></div>
     <p class="note" style="text-align:center">組立ガイド：実物を組むときに、1個ずつ置く場所を光らせて案内します。<br>ゲーム：画面の上でパーツを選んで置きます。♥3つでタイムに挑戦。<br>ミニナノのケース（プレートなし）に入る大きさです。</p>
@@ -110,6 +115,10 @@ summary{font-weight:700;cursor:pointer}
       <div class="btns"><button id="savePdf" class="primary">PDF で保存</button><button id="printGuide">プリンターで印刷</button></div>
       <p class="note">表紙・部品リスト・買い物リスト・1段ずつの組立図です。PDF もプリンターも同じ中身です。</p><p class="note" id="printStatus" hidden></p></div>
   </section>
+  <footer class="legal">
+    <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
+    <p><a href="https://naoblock.jp/">naoblock.jp へ</a></p>
+  </footer>
 </main>
 <nav class="nav" id="nav" style="display:none"><div><button id="prev">◀ 戻る</button><button id="next">次へ ▶</button></div></nav>
 
