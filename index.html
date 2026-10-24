@@ -68,12 +68,16 @@ summary{font-weight:700;cursor:pointer}
 .legal{margin:28px 0 0;text-align:center;font-size:12px;color:#7a6e73}
 .legal p{margin:4px 0}
 .legal a{color:#c2185b;font-size:14px;font-weight:700}
+/* カテゴリーのタブ */
+.tabs{display:flex;gap:4px;margin:0 0 12px;border-bottom:2px solid #3c3237;overflow-x:auto;scrollbar-width:none}
+.tabs button{flex:0 0 auto;min-height:44px;padding:8px 16px;margin-bottom:-2px;border:2px solid transparent;border-radius:10px 10px 0 0;background:transparent;color:#7a6e73;font:inherit;font-size:16px;font-weight:700;white-space:nowrap;cursor:pointer}
+.tabs button[aria-selected="true"]{color:#c2185b;border-color:#3c3237;border-bottom-color:#f4f1ec;background:#f4f1ec}
 </style>
 <link rel="stylesheet" href="print.css" media="print">
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script>
   // ?plan=nemu で plan_nemu.js を読む。plan なしはキャラ選び
-  const CHARS = [{key: 'sakuya', name: '咲耶', file: 'plan'}, {key: 'nemu', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', name: 'シャオラン', file: 'plan_xiaolan'}];
+  const CHARS = [{key: 'sakuya', cat: 'ninja', name: '咲耶', file: 'plan'}, {key: 'nemu', cat: 'ninja', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', cat: 'ninja', name: 'シャオラン', file: 'plan_xiaolan'}];
   const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan'));
   if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
@@ -83,6 +87,7 @@ summary{font-weight:700;cursor:pointer}
   <section id="select">
     <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がるミニナノを見ている絵">
     <h2>どの子を組みますか？</h2>
+    <div class="tabs" id="tabs" role="tablist" aria-label="キャラの種類"></div>
     <div class="chars" id="chars"></div>
     <p class="note" style="text-align:center">組立ガイド：実物を組むときに、1個ずつ置く場所を光らせて案内します。<br>ゲーム：画面の上でパーツを選んで置きます。♥3つでタイムに挑戦。<br>ミニナノのケース（プレートなし）に入る大きさです。</p>
   </section>
@@ -128,8 +133,20 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {wirePrint} from './print3d.js';
 
 if (!CH) {   // ---- キャラ選び ----
-  document.getElementById('chars').innerHTML = CHARS.map(c =>
-    `<div class="card"><img src="thumb_${c.key}.png" alt="${c.name}"><b>${c.name}</b><div class="go"><a href="?plan=${c.key}">組立ガイド</a><a class="g" href="game.html?plan=${c.key}">ゲーム</a></div></div>`).join('');
+  // カテゴリーのタブ（2D版 builder.naoblock.jp と同じ並び）。キャラが 1 体もいないタブは出さない
+  const CATEGORIES = [{key: 'nouns', label: 'Nouns'}, {key: 'ninja', label: 'クリプト忍者'}, {key: 'cnp', label: 'CNP'}, {key: 'qr', label: 'nanoQR'}]
+    .filter(cat => CHARS.some(c => c.cat === cat.key));
+  const tabs = document.getElementById('tabs');
+  const select = key => {
+    tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.key === key)));
+    document.getElementById('chars').innerHTML = CHARS.filter(c => c.cat === key).map(c =>
+      `<div class="card"><img src="thumb_${c.key}.png" alt="${c.name}"><b>${c.name}</b><div class="go"><a href="?plan=${c.key}">組立ガイド</a><a class="g" href="game.html?plan=${c.key}">ゲーム</a></div></div>`).join('');
+    history.replaceState(null, '', `${location.pathname}${location.search}#${key}`);
+  };
+  tabs.innerHTML = CATEGORIES.map(cat => `<button type="button" role="tab" data-key="${cat.key}">${cat.label}</button>`).join('');
+  tabs.onclick = e => { const b = e.target.closest('button'); if (b) select(b.dataset.key); };
+  const hash = location.hash.slice(1);
+  select(CATEGORIES.some(cat => cat.key === hash) ? hash : CATEGORIES[0].key);
 } else guide();
 function guide() {
 
