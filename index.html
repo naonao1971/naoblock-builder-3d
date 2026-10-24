@@ -21,10 +21,8 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 110px}
 /* キャラ選び */
 #select h2{font-size:16px;margin:12px 0 8px;text-align:center}
 .chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.chars .card{text-align:center}
-.chars .go{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.chars .go a{display:block;padding:9px 0;border-radius:10px;background:#e65f91;color:#fff;font-size:13px;font-weight:700;text-decoration:none}
-.chars .go a.g{background:#5b6bd6}
+.chars .card{display:block;width:100%;text-align:center;border:0;font:inherit;color:inherit;cursor:pointer;transition:transform .12s}
+.chars .card:active{transform:scale(.97)}
 .chars img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#f4f1ec;border-radius:12px}
 .chars b{display:block;font-size:17px;margin-top:6px}
 /* 組立 */
@@ -72,6 +70,17 @@ summary{font-weight:700;cursor:pointer}
 .tabs{display:flex;gap:4px;margin:0 0 12px;border-bottom:2px solid #3c3237;overflow-x:auto;scrollbar-width:none}
 .tabs button{flex:0 0 auto;min-height:44px;padding:8px 16px;margin-bottom:-2px;border:2px solid transparent;border-radius:10px 10px 0 0;background:transparent;color:#7a6e73;font:inherit;font-size:16px;font-weight:700;white-space:nowrap;cursor:pointer}
 .tabs button[aria-selected="true"]{color:#c2185b;border-color:#3c3237;border-bottom-color:#f4f1ec;background:#f4f1ec}
+/* モードをえらぶ（小窓） */
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,30,35,.45)}
+.modal[hidden]{display:none}
+.mode-card{position:relative;width:100%;max-width:380px;text-align:center;padding:16px}
+.mode-card img{width:120px;height:120px;object-fit:contain;background:#f4f1ec;border-radius:12px}
+.mode-card h2{font-size:17px;margin:8px 0 12px}
+.mode-close{position:absolute;top:6px;right:6px;width:44px;height:44px;border:0;background:transparent;font-size:24px;color:#7a6e73;cursor:pointer}
+.mode-btn{display:block;margin:8px 0 0;padding:12px;border-radius:12px;background:#e65f91;color:#fff;text-decoration:none;text-align:left}
+.mode-btn.g{background:#5b6bd6}
+.mode-btn strong{display:block;font-size:17px}
+.mode-btn span{display:block;font-size:12px;margin-top:2px;opacity:.95}
 </style>
 <link rel="stylesheet" href="print.css" media="print">
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
@@ -89,7 +98,7 @@ summary{font-weight:700;cursor:pointer}
     <h2>どの子を組みますか？</h2>
     <div class="tabs" id="tabs" role="tablist" aria-label="キャラの種類"></div>
     <div class="chars" id="chars"></div>
-    <p class="note" style="text-align:center">組立ガイド：実物を組むときに、1個ずつ置く場所を光らせて案内します。<br>ゲーム：画面の上でパーツを選んで置きます。♥3つでタイムに挑戦。<br>ミニナノのケース（プレートなし）に入る大きさです。</p>
+    <p class="note" style="text-align:center">ミニナノのケース（プレートなし）に入る大きさです。</p>
   </section>
 
   <section id="guide">
@@ -125,6 +134,16 @@ summary{font-weight:700;cursor:pointer}
     <p><a href="https://naoblock.jp/">naoblock.jp へ</a></p>
   </footer>
 </main>
+<!-- キャラのカードを押すと出る「モードをえらぶ」（2D版と同じ流れ） -->
+<div id="mode" class="modal" hidden>
+  <div class="card mode-card" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
+    <button type="button" class="mode-close" id="modeClose" aria-label="閉じる">×</button>
+    <img id="modeImg" alt="">
+    <h2 id="modeTitle">モードをえらぶ</h2>
+    <a class="mode-btn" id="modeGuide"><strong>組立ガイド</strong><span>実物を組むときに、1個ずつ置く場所を光らせて案内します</span></a>
+    <a class="mode-btn g" id="modeGame"><strong>ゲーム</strong><span>画面の上でパーツを選んで置きます。♥3つでタイムに挑戦</span></a>
+  </div>
+</div>
 <nav class="nav" id="nav" style="display:none"><div><button id="prev">◀ 戻る</button><button id="next">次へ ▶</button></div></nav>
 
 <script type="module">
@@ -140,11 +159,27 @@ if (!CH) {   // ---- キャラ選び ----
   const select = key => {
     tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.key === key)));
     document.getElementById('chars').innerHTML = CHARS.filter(c => c.cat === key).map(c =>
-      `<div class="card"><img src="thumb_${c.key}.png" alt="${c.name}"><b>${c.name}</b><div class="go"><a href="?plan=${c.key}">組立ガイド</a><a class="g" href="game.html?plan=${c.key}">ゲーム</a></div></div>`).join('');
+      `<button type="button" class="card" data-key="${c.key}"><img src="thumb_${c.key}.png" alt=""><b>${c.name}</b></button>`).join('');
     history.replaceState(null, '', `${location.pathname}${location.search}#${key}`);
   };
   tabs.innerHTML = CATEGORIES.map(cat => `<button type="button" role="tab" data-key="${cat.key}">${cat.label}</button>`).join('');
   tabs.onclick = e => { const b = e.target.closest('button'); if (b) select(b.dataset.key); };
+  // カードを押したら、中でモードを選ぶ
+  const mode = document.getElementById('mode');
+  const closeMode = () => { mode.hidden = true; };
+  document.getElementById('chars').onclick = e => {
+    const c = CHARS.find(c => c.key === e.target.closest('button')?.dataset.key);
+    if (!c) return;
+    document.getElementById('modeImg').src = `thumb_${c.key}.png`;
+    document.getElementById('modeTitle').textContent = `${c.name}｜モードをえらぶ`;
+    document.getElementById('modeGuide').href = `?plan=${c.key}`;
+    document.getElementById('modeGame').href = `game.html?plan=${c.key}`;
+    mode.hidden = false;
+    document.getElementById('modeGuide').focus();
+  };
+  document.getElementById('modeClose').onclick = closeMode;
+  mode.onclick = e => { if (e.target === mode) closeMode(); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMode(); });
   const hash = location.hash.slice(1);
   select(CATEGORIES.some(cat => cat.key === hash) ? hash : CATEGORIES[0].key);
 } else guide();
