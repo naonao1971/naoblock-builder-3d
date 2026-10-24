@@ -1,10 +1,10 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ミニナノ 組立ガイド</title>
+<title>ミニナノ風 組立ガイド</title>
 <meta name="description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
 <!-- シェアしたときのカード。ogp.png を差し替えたら ?v= の番号も変える（X・Discord・LINE は URL ごとに古い絵を覚えている） -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="naoblock-builder-3d｜ミニナノの組立図">
+<meta property="og:title" content="naoblock-builder-3d｜ミニナノ風の組立図">
 <meta property="og:description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
 <meta property="og:image" content="https://builder-3d.naoblock.jp/ogp.png?v=1">
 <meta property="og:url" content="https://builder-3d.naoblock.jp/">
@@ -92,10 +92,10 @@ summary{font-weight:700;cursor:pointer}
   if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
 </head><body>
-<header><h1 id="h1">ミニナノ 組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
+<header><h1 id="h1">ミニナノ風 組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
 <main>
   <section id="select">
-    <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がるミニナノを見ている絵">
+    <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がるミニナノ風を見ている絵">
     <h2>どの子を組みますか？</h2>
     <div class="tabs" id="tabs" role="tablist" aria-label="キャラの種類"></div>
     <div class="chars" id="chars"></div>
@@ -196,7 +196,7 @@ const rgb = c => PAL[col(c)];
 const css = c => `rgb(${rgb(c).join(',')})`;
 const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : s.replace(/[xz]$/, '').replace('x', '×');
 const shopShape = s => s === 'round' ? '1×1R' : s.startsWith('slope') ? 'スロープ 1×2' : shapeName(s);
-document.title = `${CH.name}ミニナノ 組立ガイド`;
+document.title = `${CH.name}ミニナノ風 組立ガイド`;
 document.getElementById('h1').textContent = document.title;
 document.getElementById('select').style.display = 'none';
 document.getElementById('guide').style.display = 'block';

@@ -1,4 +1,4 @@
-// ミニナノの組立図（表紙・部品リスト・買い物リスト・組立手順）。naoblock-builder の print.js と同じ作り。
+// ミニナノ風の組立図（表紙・部品リスト・買い物リスト・組立手順）。naoblock-builder の print.js と同じ作り。
 // 各ページを A4 縦の 1 枚の絵（canvas）として描き、「PDF で保存」も「プリンターで印刷」も同じ絵から作る。
 import * as THREE from 'three';
 import { buildPdf, dataUrlBytes } from './pdf.js';
@@ -121,7 +121,7 @@ function countParts(P, list) {
 function coverPage(doc, { P, label, url, shot }) {
   const ctx = doc.newPage(), cx = PAGE_W / 2;
   font(ctx, 28);
-  text(ctx, 'ナオブロック（naoblock）ミニナノ組立図', cx, M + 28, { align: 'center', color: '#444' });
+  text(ctx, 'ナオブロック（naoblock）ミニナノ風組立図', cx, M + 28, { align: 'center', color: '#444' });
   const titleSize = fitFont(ctx, label, CW, 64, 700, 32);
   text(ctx, label, cx, M + 28 + 18 + titleSize, { align: 'center' });
   const top = M + 28 + 18 + titleSize + 36;
@@ -291,7 +291,7 @@ function stepPages(doc, { P, shot }) {
 }
 
 // ---- まとめ ----
-// opts: { P（PLAN）, label（「シャオランミニナノ」）, url }。戻り値：[{ dataUrl（JPEG）, width, height }]
+// opts: { P（PLAN）, label（「シャオランミニナノ風」）, url }。戻り値：[{ dataUrl（JPEG）, width, height }]
 export function renderPages(opts) {
   const shot = makeShooter(opts.P), doc = new Doc(), o = { ...opts, shot };
   coverPage(doc, o); listPages(doc, o); stepPages(doc, o);
@@ -315,7 +315,7 @@ async function fillPrintRoot(pages) {
 // ボタンをつなぐ。作ったページは使い回す
 export function wirePrint({ P, CH, pdfBtn, printBtn, status }) {
   let pages = null;
-  const opts = { P, label: `${CH.name}ミニナノ`, url: `${location.origin}${location.pathname.replace(/[^/]*$/, '')}?plan=${CH.key}` };
+  const opts = { P, label: `${CH.name}ミニナノ風`, url: `${location.origin}${location.pathname.replace(/[^/]*$/, '')}?plan=${CH.key}` };
   const prepare = () => (pages ??= renderPages(opts));
   const say = m => { if (status) { status.hidden = !m; status.textContent = m || ''; } };
   const busy = (btn, msg, work) => {
@@ -324,7 +324,7 @@ export function wirePrint({ P, CH, pdfBtn, printBtn, status }) {
       try { await work(); say(''); } catch (e) { console.error(e); say(`うまくいきませんでした：${e.message}`); } finally { btn.disabled = false; }
     }, 30);
   };
-  pdfBtn.onclick = () => busy(pdfBtn, '組立図の PDF を作っています…', () => downloadBlob(pagesToPdf(prepare()), `${CH.name}ミニナノ_naoblock.pdf`));
+  pdfBtn.onclick = () => busy(pdfBtn, '組立図の PDF を作っています…', () => downloadBlob(pagesToPdf(prepare()), `${CH.name}ミニナノ風_naoblock.pdf`));
   printBtn.onclick = () => busy(printBtn, '印刷の準備をしています…', async () => { await fillPrintRoot(prepare()); window.print(); });
   window.onbeforeprint = () => { if (!document.getElementById('print-root')?.childElementCount) fillPrintRoot(prepare()); };
   return { renderPages: () => prepare(), pagesToPdf };

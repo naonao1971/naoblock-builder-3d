@@ -1,10 +1,10 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>ミニナノ ゲーム</title>
+<title>ミニナノ風 ゲーム</title>
 <meta name="description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
 <!-- シェアしたときのカード。ogp.png を差し替えたら ?v= の番号も変える（X・Discord・LINE は URL ごとに古い絵を覚えている） -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="naoblock-builder-3d｜ミニナノの組立図">
+<meta property="og:title" content="naoblock-builder-3d｜ミニナノ風の組立図">
 <meta property="og:description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
 <meta property="og:image" content="https://builder-3d.naoblock.jp/ogp.png?v=1">
 <meta property="og:url" content="https://builder-3d.naoblock.jp/game.html">
@@ -70,7 +70,7 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
   document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
 </head><body>
-<header><h1 id="h1">ミニナノ ゲーム</h1><a href="./">キャラを選ぶ</a></header>
+<header><h1 id="h1">ミニナノ風 ゲーム</h1><a href="./">キャラを選ぶ</a></header>
 <main>
   <div class="status"><b id="layerNo"></b><span id="layerSub" style="font-size:13px;color:#7a6e73"></span><span id="hearts"></span><span id="timer">0.0</span></div>
   <div class="layout">
@@ -104,7 +104,7 @@ const dims = b => { const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2
 const kind = b => b.shape === 'round' ? 'round' : b.shape.startsWith('slope') ? 'slope' : dims(b).join('x');
 const key = b => col(b.col) + '|' + kind(b);   // 向きは問わない（回して置ける）
 const kindName = k => k === 'round' ? '丸1×1' : k === 'slope' ? '斜め1×2' : k.replace('x', '×');
-document.title = `${CH.name}ミニナノ ゲーム`;
+document.title = `${CH.name}ミニナノ風 ゲーム`;
 document.getElementById('h1').textContent = document.title;
 
 const $ = id => document.getElementById(id), $id = $;
@@ -316,13 +316,13 @@ function shareImage(ms) {   // 3Dの絵＋タイムを1枚に
   g.fillStyle = '#f4f1ec'; g.fillRect(0, 0, 600, 700);
   const s = ren.domElement, k = Math.min(560 / s.width, 520 / s.height);
   g.drawImage(s, (600 - s.width * k) / 2, 70, s.width * k, s.height * k);
-  g.fillStyle = '#3c3237'; g.textAlign = 'center'; g.font = 'bold 34px sans-serif'; g.fillText(`${CH.name}ミニナノ 完成！`, 300, 50);
+  g.fillStyle = '#3c3237'; g.textAlign = 'center'; g.font = 'bold 34px sans-serif'; g.fillText(`${CH.name}ミニナノ風 完成！`, 300, 50);
   g.fillStyle = '#e65f91'; g.font = 'bold 40px sans-serif'; g.fillText(`${fmt(ms)}秒  ${'♥'.repeat(hearts)}`, 300, 640);
   g.fillStyle = '#7a6e73'; g.font = '22px sans-serif'; g.fillText(`全${P.bricks.length}個・${guideName()}　#naoblock`, 300, 680);
   return c.toDataURL('image/png');
 }
 async function share(img, ms) {
-  const text = `${CH.name}ミニナノを${fmt(ms)}秒で組み立てた！ #naoblock`;
+  const text = `${CH.name}ミニナノ風を${fmt(ms)}秒で組み立てた！ #naoblock`;
   try {
     const file = new File([await (await fetch(img)).blob()], 'mininano.png', {type: 'image/png'});
     if (navigator.canShare?.({files: [file]})) return await navigator.share({files: [file], text});
