@@ -87,7 +87,8 @@ summary{font-weight:700;cursor:pointer}
 <script>
   // ?plan=nemu で plan_nemu.js を読む。plan なしはキャラ選び
   const CHARS = [{key: 'sakuya', cat: 'ninja', name: '咲耶', file: 'plan'}, {key: 'nemu', cat: 'ninja', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', cat: 'ninja', name: 'シャオラン', file: 'plan_xiaolan'},
-    {key: 'ghost', cat: 'halloween', name: 'おばけ', file: 'plan_ghost'}, {key: 'pumpkin', cat: 'halloween', name: 'かぼちゃ', file: 'plan_pumpkin'}];
+    {key: 'ghost', cat: 'halloween', name: 'おばけ', file: 'plan_ghost'}, {key: 'pumpkin', cat: 'halloween', name: 'かぼちゃ', file: 'plan_pumpkin'},
+    {key: 'mitama', cat: 'cnp', name: 'ミタマ', file: 'plan_mitama'}];
   const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan'));
   if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
@@ -190,11 +191,24 @@ function guide() {
 
 const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
 window.__print = wirePrint({P, CH, pdfBtn: document.getElementById('savePdf'), printBtn: document.getElementById('printGuide'), status: document.getElementById('printStatus')});
-const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー'};
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー'};
 const col = c => PAL[c] ? c : 'black';   // 見えない中身はブラックで組む
 const rgb = c => PAL[col(c)];
 const css = c => `rgb(${rgb(c).join(',')})`;
-const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : s.replace(/[xz]$/, '').replace('x', '×');
+const bent = s => /^[LT]\d$/.test(s);   // L字・T字（数字は向き）
+const baseShape = s => bent(s) ? s[0] : s.replace(/[xz]$/, '');
+const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : /^[LT]\d?$/.test(s) ? s[0] + '字' : s.replace(/[xz]$/, '').replace('x', '×');
+// マスの集まりの外周（角の座標を反時計回り）を、内側へ d だけ寄せて返す。L字・T字を形どおりに描くため
+function outline(cells, d = 0) {
+  const has = new Set(cells.map(([x, z]) => x + ',' + z)), next = new Map();
+  for (const [x, z] of cells) for (const [a, b, c, e, nx, nz] of [[x, z, x + 1, z, x, z - 1], [x + 1, z, x + 1, z + 1, x + 1, z], [x + 1, z + 1, x, z + 1, x, z + 1], [x, z + 1, x, z, x - 1, z]])
+    if (!has.has(nx + ',' + nz)) next.set(a + ',' + b, [c, e]);
+  const start = next.keys().next().value.split(',').map(Number), pts = [];
+  let p = start; do { pts.push(p); p = next.get(p.join()); } while (p.join() !== start.join());
+  const v = pts.filter((q, i) => { const a = pts[(i + pts.length - 1) % pts.length], b = pts[(i + 1) % pts.length]; return (q[0] - a[0]) * (b[1] - q[1]) !== (q[1] - a[1]) * (b[0] - q[0]); });
+  return v.map((q, i) => { const a = v[(i + v.length - 1) % v.length], b = v[(i + 1) % v.length], n = (u, w) => [-Math.sign(w[1] - u[1]), Math.sign(w[0] - u[0])];
+    const [n1, n2] = [n(a, q), n(q, b)]; return [q[0] + d * (n1[0] + n2[0]), q[1] + d * (n1[1] + n2[1])]; });
+}
 const shopShape = s => s === 'round' ? '1×1R' : s.startsWith('slope') ? 'スロープ 1×2' : shapeName(s);
 document.title = `${CH.name}ミニナノ風 組立ガイド`;
 document.getElementById('h1').textContent = document.title;
@@ -218,7 +232,7 @@ const layerSteps = y => steps.filter(s => s.y === y);
 // ---- 買い物リスト ----
 (() => {
   const m = new Map();
-  for (const b of P.bricks) { const k = col(b.col) + '|' + b.shape.replace(/[xz]$/, ''); m.set(k, (m.get(k) || 0) + 1); }
+  for (const b of P.bricks) { const k = col(b.col) + '|' + baseShape(b.shape); m.set(k, (m.get(k) || 0) + 1); }
   const rows = [...m].map(([k, n]) => { const [c, s] = k.split('|'); return {c, s, n}; }).sort((a, b) => a.c.localeCompare(b.c) || a.s.localeCompare(b.s));
   const q = r => encodeURIComponent(`ナノブロック 単色部品 ${shopShape(r.s)} ${JNAME[r.c]}`);
   document.getElementById('shop').innerHTML = '<tr><th>色</th><th>形</th><th>数</th><th></th></tr>' + rows.map(r =>
@@ -235,11 +249,15 @@ function drawPiece(b) {
   const S = Math.min(36, 180 / w), x0 = (pic.width - w * S) / 2, y0 = (pic.height - h * S) / 2;
   pc.clearRect(0, 0, pic.width, pic.height);
   pc.fillStyle = css(b.col); pc.strokeStyle = '#141414'; pc.lineWidth = 3;
+  let cs = b.cells.map(([x, , z]) => [x - Math.min(...xs), z - Math.min(...zs)]);
+  if (Math.max(...zs) - Math.min(...zs) > Math.max(...xs) - Math.min(...xs)) cs = cs.map(([x, z]) => [z, x]);
   pc.beginPath();
-  if (b.shape === 'round') pc.ellipse(pic.width / 2, pic.height / 2, S / 2, S / 2, 0, 0, 7); else pc.roundRect(x0, y0, w * S, h * S, 6);
-  pc.fill(); pc.stroke();
+  if (b.shape === 'round') pc.ellipse(pic.width / 2, pic.height / 2, S / 2, S / 2, 0, 0, 7);
+  else if (bent(b.shape)) outline(cs).forEach(([x, z], i) => pc[i ? 'lineTo' : 'moveTo'](x0 + x * S, y0 + (h - z) * S));
+  else pc.roundRect(x0, y0, w * S, h * S, 6);
+  pc.closePath(); pc.fill(); pc.stroke();
   pc.strokeStyle = rgb(b.col).reduce((s, v) => s + v, 0) > 300 ? '#0006' : '#fff9'; pc.lineWidth = 2;
-  for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) { pc.beginPath(); pc.arc(x0 + (i + .5) * S, y0 + (j + .5) * S, S * .22, 0, 7); pc.stroke(); }
+  for (const [i, j] of cs) { pc.beginPath(); pc.arc(x0 + (i + .5) * S, y0 + (h - j - .5) * S, S * .22, 0, 7); pc.stroke(); }
 }
 
 // ---- 上から見た図 ----
@@ -264,7 +282,10 @@ function draw2d(i, t) {
     const b = steps[k].b; if (b.y !== y) continue;
     const [x, yy, w, h] = rect(b), now = k === i;
     ctx.globalAlpha = now ? .55 + .45 * Math.sin(t / 180) ** 2 : 1;
-    ctx.fillStyle = css(b.col); ctx.beginPath(); ctx.roundRect(x, yy, w, h, 5); ctx.fill();
+    ctx.fillStyle = css(b.col); ctx.beginPath();
+    if (bent(b.shape)) { outline(b.cells.map(([x, , z]) => [x, z]), 2 / CELL).forEach(([x, z], j) => ctx[j ? 'lineTo' : 'moveTo'](PAD + x * CELL, PAD + (D - z) * CELL)); ctx.closePath(); }
+    else ctx.roundRect(x, yy, w, h, 5);
+    ctx.fill();
     ctx.globalAlpha = 1; ctx.strokeStyle = now ? '#e65f91' : '#141414'; ctx.lineWidth = now ? 6 : 2.5; ctx.stroke();
   }
 }
@@ -281,11 +302,16 @@ const stud = new THREE.CylinderGeometry(0.3, 0.3, 0.22, 14);
 const ghostMat = new THREE.MeshBasicMaterial({color: 0x9a8f94, transparent: true, opacity: .1, depthWrite: false});   // まだ置いていないパーツ
 const glowMat = new THREE.MeshBasicMaterial({color: 0xff2d7a, transparent: true, opacity: .3, depthWrite: false});
 const brickObj = new Map();
+function bentGeo(b, x0, x1, z0, z1, g) {   // L字・T字は外周を押し出して作る
+  const sh = new THREE.Shape(outline(b.cells.map(([x, , z]) => [x, z]), g / 2).map(([x, z]) => new THREE.Vector2(x - .5 - (x0 + x1) / 2, z - .5 - (z0 + z1) / 2)));
+  const geo = new THREE.ExtrudeGeometry(sh, {depth: A - g, bevelEnabled: false});
+  geo.translate(0, 0, -(A - g) / 2); geo.rotateX(-Math.PI / 2); return geo;
+}
 for (const b of P.bricks) {
   const mat = new THREE.MeshLambertMaterial({color: new THREE.Color(...rgb(b.col).map(v => v / 255))});
   const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), g = 0.07;
-  const geo = b.shape === 'round' ? new THREE.CylinderGeometry(0.46, 0.46, A - g, 20) : new THREE.BoxGeometry(x1 - x0 + 1 - g, A - g, z1 - z0 + 1 - g);
+  const geo = b.shape === 'round' ? new THREE.CylinderGeometry(0.46, 0.46, A - g, 20) : bent(b.shape) ? bentGeo(b, x0, x1, z0, z1, g) : new THREE.BoxGeometry(x1 - x0 + 1 - g, A - g, z1 - z0 + 1 - g);
   const grp = new THREE.Group();
   grp.position.set((x0 + x1) / 2 - W / 2, b.y * A, -((z0 + z1) / 2 - D / 2));
   grp.add(new THREE.Mesh(geo, mat), new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));

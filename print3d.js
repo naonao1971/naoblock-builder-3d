@@ -12,8 +12,21 @@ const GAP = 36, HEAD_H = 64;
 const LAYERS_PER_PAGE = 2;
 const PRICE = 220;   // 単色部品は 1 袋 220 円（どの形も 1 キャラ分なら 1 袋に収まる）
 const FONT = '"Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, -apple-system, "Yu Gothic", Meiryo, sans-serif';
-const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー'};
-const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : s.replace(/[xz]$/, '').replace('x', '×');
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー'};
+const bent = s => /^[LT]\d$/.test(s);   // L字・T字（数字は向き）
+const baseShape = s => bent(s) ? s[0] : s.replace(/[xz]$/, '');
+const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : /^[LT]\d?$/.test(s) ? s[0] + '字' : s.replace(/[xz]$/, '').replace('x', '×');
+// マスの集まりの外周（角の座標を反時計回り）を、内側へ d だけ寄せて返す。L字・T字を形どおりに描くため
+function outline(cells, d = 0) {
+  const has = new Set(cells.map(([x, z]) => x + ',' + z)), next = new Map();
+  for (const [x, z] of cells) for (const [a, b, c, e, nx, nz] of [[x, z, x + 1, z, x, z - 1], [x + 1, z, x + 1, z + 1, x + 1, z], [x + 1, z + 1, x, z + 1, x, z + 1], [x, z + 1, x, z, x - 1, z]])
+    if (!has.has(nx + ',' + nz)) next.set(a + ',' + b, [c, e]);
+  const start = next.keys().next().value.split(',').map(Number), pts = [];
+  let p = start; do { pts.push(p); p = next.get(p.join()); } while (p.join() !== start.join());
+  const v = pts.filter((q, i) => { const a = pts[(i + pts.length - 1) % pts.length], b = pts[(i + 1) % pts.length]; return (q[0] - a[0]) * (b[1] - q[1]) !== (q[1] - a[1]) * (b[0] - q[0]); });
+  return v.map((q, i) => { const a = v[(i + v.length - 1) % v.length], b = v[(i + 1) % v.length], n = (u, w) => [-Math.sign(w[1] - u[1]), Math.sign(w[0] - u[0])];
+    const [n1, n2] = [n(a, q), n(q, b)]; return [q[0] + d * (n1[0] + n2[0]), q[1] + d * (n1[1] + n2[1])]; });
+}
 const yen = n => `${n.toLocaleString('ja-JP')}円`;
 
 // ---- 文字 ----
@@ -72,7 +85,12 @@ function makeShooter(P) {
     const fade = new THREE.MeshLambertMaterial({ color: c.clone().lerp(new THREE.Color(0xffffff), .65) });
     const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), g = 0.07;
-    const geo = b.shape === 'round' ? new THREE.CylinderGeometry(0.46, 0.46, A - g, 20) : new THREE.BoxGeometry(x1 - x0 + 1 - g, A - g, z1 - z0 + 1 - g);
+    let geo;
+    if (b.shape === 'round') geo = new THREE.CylinderGeometry(0.46, 0.46, A - g, 20);
+    else if (bent(b.shape)) {   // L字・T字は外周を押し出して作る
+      const sh = new THREE.Shape(outline(b.cells.map(([x, , z]) => [x, z]), g / 2).map(([x, z]) => new THREE.Vector2(x - .5 - (x0 + x1) / 2, z - .5 - (z0 + z1) / 2)));
+      geo = new THREE.ExtrudeGeometry(sh, { depth: A - g, bevelEnabled: false }); geo.translate(0, 0, -(A - g) / 2); geo.rotateX(-Math.PI / 2);
+    } else geo = new THREE.BoxGeometry(x1 - x0 + 1 - g, A - g, z1 - z0 + 1 - g);
     const grp = new THREE.Group(); grp.position.set((x0 + x1) / 2 - W / 2, b.y * A, -((z0 + z1) / 2 - D / 2));
     const body = new THREE.Mesh(geo, mat), edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat);
     grp.add(body, edge);
@@ -112,7 +130,7 @@ function layerSteps(P) {
 function countParts(P, list) {
   const col = c => P.palette[c] ? c : 'black';
   const m = new Map();
-  for (const b of list) { const k = col(b.col) + '|' + b.shape.replace(/[xz]$/, ''); m.set(k, (m.get(k) || 0) + 1); }
+  for (const b of list) { const k = col(b.col) + '|' + baseShape(b.shape); m.set(k, (m.get(k) || 0) + 1); }
   return [...m].map(([k, n]) => { const [c, s] = k.split('|'); return { c, s, n, rgb: P.palette[c] }; })
     .sort((a, b) => a.c.localeCompare(b.c) || a.s.localeCompare(b.s));
 }
@@ -230,7 +248,19 @@ function topView(ctx, { P, layer, prev, x, y, w, h }) {
   ctx.strokeStyle = '#b5b5b5'; ctx.lineWidth = 2;   // 1つ下の段
   for (const b of prev) for (const [cx, , cz] of b.cells) { const [X, Y] = at(cx, cz); ctx.strokeRect(X + s * .15, Y + s * .15, s * .7, s * .7); }
   const rect = b => { const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]); const [X, Y] = at(Math.min(...xs), Math.max(...zs)); return [X + 2, Y + 2, (Math.max(...xs) - Math.min(...xs) + 1) * s - 4, (Math.max(...zs) - Math.min(...zs) + 1) * s - 4]; };
-  const path = (b, X, Y, bw, bh) => { ctx.beginPath(); if (b.shape === 'round') ctx.ellipse(X + bw / 2, Y + bh / 2, bw / 2, bh / 2, 0, 0, 7); else ctx.roundRect(X, Y, bw, bh, 5); };
+  const path = (b, X, Y, bw, bh) => {
+    ctx.beginPath();
+    if (b.shape === 'round') ctx.ellipse(X + bw / 2, Y + bh / 2, bw / 2, bh / 2, 0, 0, 7);
+    else if (bent(b.shape)) { outline(b.cells.map(([x, , z]) => [x, z]), 2 / s).forEach(([gx, gz], i) => ctx[i ? 'lineTo' : 'moveTo'](ox + (gx - X0) * s, oy + (Z1 + 1 - gz) * s)); ctx.closePath(); }
+    else ctx.roundRect(X, Y, bw, bh, 5);
+  };
+  // 番号を書く場所。L字・T字は外枠の真ん中が穴や縁になるので、となりの多いマス（角・T の真ん中）の中心に書く
+  const mid = (b, X, Y, bw, bh) => {
+    if (!bent(b.shape)) return [X + bw / 2, Y + bh / 2];
+    const has = new Set(b.cells.map(([x, , z]) => x + ',' + z)), nb = ([x, , z]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dz]) => has.has((x + dx) + ',' + (z + dz))).length;
+    const c = b.cells.reduce((m, c) => nb(c) > nb(m) ? c : m), [cx, cy] = at(c[0], c[2]);
+    return [cx + s / 2, cy + s / 2];
+  };
   // 下から差し込むパーツは上の段の下に隠れるので、先に塗って、点線と番号はいちばん上に描く
   const order = [...layer.map((p, i) => ({ ...p, i })).filter(p => p.under), ...layer.map((p, i) => ({ ...p, i })).filter(p => !p.under)];
   for (const { b, under } of order) {
@@ -243,13 +273,14 @@ function topView(ctx, { P, layer, prev, x, y, w, h }) {
     font(ctx, Math.round(s * .42), 700);
     if (under) {   // ピンクの点線と、ピンクの丸に白い番号（下の段のパーツに重なっても読めるように）
       path(b, X, Y, bw, bh); ctx.setLineDash([8, 6]); ctx.strokeStyle = '#e65f91'; ctx.lineWidth = 4; ctx.stroke(); ctx.setLineDash([]);
-      const r = s * .34, cx = X + bw / 2, cy = Y + bh - r * .2;
+      const r = s * .34, cx = mid(b, X, Y, bw, bh)[0], cy = bent(b.shape) ? mid(b, X, Y, bw, bh)[1] : Y + bh - r * .2;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fillStyle = '#e65f91'; ctx.fill();
       text(ctx, `${i + 1}`, cx, cy + s * .15, { align: 'center', color: '#fff' });
       continue;
     }
     const dark = rgb[0] * .3 + rgb[1] * .59 + rgb[2] * .11 < 140;   // 番号は、濃い色には白、うすい色には黒
-    text(ctx, `${i + 1}`, X + bw / 2, Y + bh / 2 + s * .15, { align: 'center', color: dark ? '#fff' : '#000' });
+    const [mx, my] = mid(b, X, Y, bw, bh);
+    text(ctx, `${i + 1}`, mx, my + s * .15, { align: 'center', color: dark ? '#fff' : '#000' });
   }
   font(ctx, 20); text(ctx, '上から見た図（下が正面）。灰色の枠は1つ下の段', x + w / 2, oy + gd * s + 30, { align: 'center', color: '#555' });
 }
