@@ -40,12 +40,9 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
 .tray button canvas{display:block}
 .shake{animation:shake .3s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
 .c3d{position:relative}
 #combo{position:absolute;left:0;right:0;top:12px;text-align:center;font-size:30px;font-weight:900;color:#e65f91;text-shadow:0 2px 0 #fff,0 0 8px #fff;pointer-events:none;opacity:0}
 #combo.pop{animation:pop .9s ease-out}
-.fly-heart{position:fixed;left:0;top:0;width:56px;height:56px;padding:0;border:0;background:none;font-size:44px;line-height:56px;cursor:pointer;z-index:15;filter:drop-shadow(0 0 8px #ff8fb1);animation:heartbeat .5s ease-in-out infinite alternate;touch-action:none}
-@keyframes heartbeat{to{font-size:52px;filter:drop-shadow(0 0 14px #ff5c8a)}}
 @keyframes pop{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.25)}35%{transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
 #layerNo.pop{display:inline-block;animation:bump .4s}
 @keyframes bump{40%{transform:scale(1.35);color:#e65f91}}
@@ -90,13 +87,13 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
   </footer>
 </main>
 <nav class="tray"><div id="tray"></div></nav>
-<canvas id="fx"></canvas>
 <div class="over" id="over"><div class="card" id="overCard"></div></div>
 
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {wirePrint} from './print3d.js';
+import {sound, confetti, centerOf as center, showCombo, popText, createHeartBonus, catchHeart} from './kit.js';
 
 const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
 const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー'};
@@ -233,81 +230,26 @@ function resize() { const w = box.clientWidth, h = box.clientHeight; if (w && h)
 new ResizeObserver(resize).observe(box); resize();
 function refresh3d() { for (const [b, o] of obj) { o.grp.visible = placed.has(b); o.ghost.visible = !placed.has(b) && guideOn && b.y === layer; } }
 
-// ---- 効果音（ファイルなし、その場で鳴らす） ----
-let actx = null, soundOn = localStorage.getItem('mininano-sound') !== 'off';
-function tone(f, t, len, type = 'sine', vol = .25) {
-  const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + len); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + len);
-}
-function sfx(name, n = 1) {
-  if (!soundOn) return;
-  actx ||= new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume();
-  const t = actx.currentTime;
-  if (name === 'place') { const f = 520 * Math.pow(2, Math.min(n - 1, 12) / 12); tone(f * 2, t, .05, 'square', .08); tone(f, t, .12, 'triangle', .3); }   // カチッ（コンボで音が上がる）
-  if (name === 'miss') { tone(180, t, .18, 'sawtooth', .12); tone(140, t + .1, .22, 'sawtooth', .12); }
-  if (name === 'layer') [660, 830, 990].forEach((f, i) => tone(f, t + i * .07, .18, 'triangle', .22));
-  if (name === 'heart') [880, 1175, 1568].forEach((f, i) => tone(f, t + i * .07, .2, 'triangle', .22));
-  if (name === 'clear') [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, t + i * .11, i === 5 ? .6 : .2, 'triangle', .25));
-}
-$id('soundBtn').textContent = soundOn ? '🔊' : '🔇';
-$id('soundBtn').onclick = () => { soundOn = !soundOn; localStorage.setItem('mininano-sound', soundOn ? 'on' : 'off'); $id('soundBtn').textContent = soundOn ? '🔊' : '🔇'; sfx('place'); };
-
-// ---- 紙吹雪 ----
-const fx = $id('fx'), fg = fx.getContext('2d'), bits = [];
-const FXC = ['#e65f91', '#ffcf4a', '#5bc0eb', '#7bd389', '#b28dff', '#ff8a5b'];
-function confetti(x, y, n, power = 1) {
-  for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = (2 + Math.random() * 5) * power;
-    bits.push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4 * power, r: Math.random() * 6, vr: (Math.random() - .5) * .4, s: 5 + Math.random() * 5, c: FXC[i % FXC.length], life: 1}); }
-}
-function drawFx() {
-  if (fx.width !== innerWidth * devicePixelRatio) { fx.width = innerWidth * devicePixelRatio; fx.height = innerHeight * devicePixelRatio; }
-  fg.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); fg.clearRect(0, 0, innerWidth, innerHeight);
-  for (let i = bits.length - 1; i >= 0; i--) { const b = bits[i];
-    b.vy += .18; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.r += b.vr; b.life -= .008;
-    if (b.life <= 0 || b.y > innerHeight + 20) { bits.splice(i, 1); continue; }
-    fg.save(); fg.globalAlpha = Math.min(1, b.life * 2); fg.translate(b.x, b.y); fg.rotate(b.r); fg.fillStyle = b.c; fg.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); fg.restore(); }
-}
-const center = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+// ---- 効果音・紙吹雪（naoblock-kit） ----
+const syncSound = () => $id('soundBtn').textContent = sound.isMuted() ? '🔇' : '🔊';
+syncSound();
+$id('soundBtn').onclick = () => { sound.setMuted(!sound.isMuted()); syncSound(); sound.place(); };
 
 // ---- コンボ ----
 let combo = 0;
-function showCombo() {
-  if (combo < 3) return;
-  const el = $id('combo'); el.textContent = `${combo}コンボ！` + (combo >= 10 ? '🔥' : combo >= 5 ? '✨' : '');
-  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
-}
 
 // ---- 飛んでくる ♥ ----
 // 前半に 1 回・後半に 1 回、ランダムな数だけはめたところで ♥ が画面を横切る。時間内にタップすると ♥ が 1 つ戻る
 // ♥ がいっぱいのときは何も起きない（取った数だけ数えておく。将来の得点用）
-const TOTAL = P.bricks.length;
-const heartAt = [.15 + Math.random() * .3, .55 + Math.random() * .35].map(r => Math.max(1, Math.round(r * TOTAL)));
-let heartNext = 0, heartBonus = 0, stopHeart = null;
-function flyHeart(onCatch, ms = 3200) {
-  const r = box.getBoundingClientRect(), size = 56, fromLeft = Math.random() < .5;
-  const x0 = fromLeft ? r.left - size : r.right, x1 = fromLeft ? r.right : r.left - size, y0 = r.top + r.height * (.25 + Math.random() * .4);
-  const el = document.createElement('button'); el.type = 'button'; el.className = 'fly-heart'; el.textContent = '❤️'; el.setAttribute('aria-label', '♥ をタップして取る');
-  document.body.appendChild(el);
-  const st = performance.now(); let done = false; const end = () => { done = true; el.remove(); };
-  const step = now => { if (done) return; const p = (now - st) / ms; if (p >= 1) return end();
-    el.style.transform = `translate(${x0 + (x1 - x0) * p}px, ${y0 + Math.sin(p * Math.PI * 4) * 24}px)`; requestAnimationFrame(step); };
-  requestAnimationFrame(step);
-  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (done) return; const b = el.getBoundingClientRect(); end(); onCatch(b.left + b.width / 2, b.top + b.height / 2); });
-  return end;
-}
-function maybeHeart() {
-  if (heartNext >= heartAt.length || placed.size < heartAt[heartNext] || over) return;
-  heartNext++;
-  stopHeart = flyHeart((x, y) => {
-    stopHeart = null; if (over) return;
-    sfx('heart'); confetti(x, y, 30, .8);
-    const t = hearts < 3 ? '♥ 復活！' : '♥ いっぱい！';
-    if (hearts < 3) { hearts++; updateStatus(); } else heartBonus++;
-    say(t); const el = $id('combo'); el.textContent = t; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
-  });
-}
-
-// ---- 進行 ----
+let heartBonus = 0;
+const bonusHearts = createHeartBonus({total: P.bricks.length, area: box, onCatch: () => {
+  if (over) return false;
+  const r = catchHeart(hearts, 3);
+  if (r.lives !== hearts) { hearts = r.lives; updateStatus(); }
+  heartBonus += r.bonus;
+  say(r.text); popText($id('combo'), r.text);
+}});
+function maybeHeart() { if (!over) bonusHearts.check(placed.size); }
 function say(s) { $('msg').textContent = s; clearTimeout(say.t); say.t = setTimeout(() => $('msg').textContent = '', 1400); }
 function updateStatus() {
   $('layerNo').textContent = `${layer + 1}段目`;
@@ -326,14 +268,14 @@ function tap(e) {
   const b = left(layer).find(b => b.cells.some(c => c[0] === x && c[2] === z));
   if (b && key(b) === sel) {
     placed.add(b); const o = obj.get(b); o.drop = 1; refresh3d();
-    combo++; sfx('place', combo); showCombo(); navigator.vibrate?.(15);
+    combo++; sound.place(combo); showCombo($id('combo'), combo); navigator.vibrate?.(15);
     if (!left(layer).length) {
-      if (layer === H - 1) { updateStatus(); $('tray').innerHTML = ''; stopHeart?.(); return clear(); }
-      say(`${layer + 1}段目クリア！`); setTimeout(() => sfx('layer'), 120); confetti(...center(cv), 36, .8); setTimeout(() => startLayer(layer + 1), 350);
+      if (layer === H - 1) { updateStatus(); $('tray').innerHTML = ''; bonusHearts.stop(); return clear(); }
+      say(`${layer + 1}段目クリア！`); setTimeout(() => sound.layerDone(), 120); confetti(...center(cv), 36, .8); setTimeout(() => startLayer(layer + 1), 350);
     }
     drawTray(); updateStatus(); maybeHeart();
   } else {
-    hearts--; combo = 0; sfx('miss'); missAt = {x, z, t: performance.now()}; navigator.vibrate?.([60, 40, 60]);
+    hearts--; combo = 0; sound.miss(); missAt = {x, z, t: performance.now()}; navigator.vibrate?.([60, 40, 60]);
     cv.classList.remove('shake'); void cv.offsetWidth; cv.classList.add('shake');
     say(b ? 'ちがうパーツです' : 'そこじゃないよ'); updateStatus();
     if (!hearts) gameOver();
@@ -351,7 +293,7 @@ $('hintBtn').onclick = () => { if (!hints || over) return; hints--; hintUntil = 
 const fmt = ms => (ms / 1000).toFixed(1);
 function overlay(html) { $('overCard').innerHTML = html; $('over').style.display = 'flex'; }
 function gameOver() {
-  over = true; stopHeart?.();
+  over = true; bonusHearts.stop();
   overlay(`<h2>ざんねん…</h2><p>${layer + 1}段目で♥がなくなりました</p><button onclick="location.reload()">もう一度</button><a class="sub" href="./?plan=${CH.key}">組立ガイドで確かめる</a>`);
 }
 function clear() {
@@ -360,7 +302,7 @@ function clear() {
   if (best) localStorage.setItem(bestKey(), Math.round(ms));
   for (const o of obj.values()) o.ghost.visible = false;
   spin = true; ctl.target.set(mx, H * A / 2, mz);
-  sfx('clear'); const [cx, cy] = center(box); confetti(cx, cy, 90, 1.3); setTimeout(() => { confetti(innerWidth * .2, innerHeight * .4, 50, 1.1); confetti(innerWidth * .8, innerHeight * .4, 50, 1.1); }, 400);
+  sound.clear(); const [cx, cy] = center(box); confetti(cx, cy, 90, 1.3); setTimeout(() => { confetti(innerWidth * .2, innerHeight * .4, 50, 1.1); confetti(innerWidth * .8, innerHeight * .4, 50, 1.1); }, 400);
   setTimeout(() => {
     const img = shareImage(ms);
     overlay(`<h2>完成！🎉</h2><img src="${img}" alt=""><p><b style="font-size:22px">${fmt(ms)}秒</b>　${'♥'.repeat(hearts)}${'♡'.repeat(3 - hearts)}</p>
@@ -403,7 +345,6 @@ async function share(img, ms) {
     if (o.drop > 0) { o.drop = Math.max(0, o.drop - .08); o.grp.position.y = o.y0 + o.drop * o.drop * 3; if (!o.drop) o.bounce = 1; }   // 上から落ちてくる
     else if (o.bounce > 0) { o.bounce = Math.max(0, o.bounce - .07); const k = Math.sin(o.bounce * Math.PI * 2) * o.bounce * .18; o.grp.scale.set(1 + k * .6, 1 - k, 1 + k * .6); }   // 着地でぽよんと弾む
   }
-  drawFx();
   draw2d(t);
   ctl.update(); ren.render(scene, cam); requestAnimationFrame(loop);
 })();

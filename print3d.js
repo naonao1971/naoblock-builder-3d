@@ -1,7 +1,7 @@
 // ミニナノ風の組立図（表紙・部品リスト・買い物リスト・組立手順）。naoblock-builder の print.js と同じ作り。
 // 各ページを A4 縦の 1 枚の絵（canvas）として描き、「PDF で保存」も「プリンターで印刷」も同じ絵から作る。
 import * as THREE from 'three';
-import { buildPdf, dataUrlBytes } from './pdf.js';
+import { buildPdf, dataUrlBytes } from './kit.js';
 
 // A4 縦・150dpi。余白 12mm はページの絵の中に描き込む
 const PAGE_W = 1240, PAGE_H = 1754;
