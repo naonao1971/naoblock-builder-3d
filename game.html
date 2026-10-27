@@ -44,6 +44,8 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
 .c3d{position:relative}
 #combo{position:absolute;left:0;right:0;top:12px;text-align:center;font-size:30px;font-weight:900;color:#e65f91;text-shadow:0 2px 0 #fff,0 0 8px #fff;pointer-events:none;opacity:0}
 #combo.pop{animation:pop .9s ease-out}
+.fly-heart{position:fixed;left:0;top:0;width:56px;height:56px;padding:0;border:0;background:none;font-size:44px;line-height:56px;cursor:pointer;z-index:15;filter:drop-shadow(0 0 8px #ff8fb1);animation:heartbeat .5s ease-in-out infinite alternate;touch-action:none}
+@keyframes heartbeat{to{font-size:52px;filter:drop-shadow(0 0 14px #ff5c8a)}}
 @keyframes pop{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.25)}35%{transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
 #layerNo.pop{display:inline-block;animation:bump .4s}
 @keyframes bump{40%{transform:scale(1.35);color:#e65f91}}
@@ -244,6 +246,7 @@ function sfx(name, n = 1) {
   if (name === 'place') { const f = 520 * Math.pow(2, Math.min(n - 1, 12) / 12); tone(f * 2, t, .05, 'square', .08); tone(f, t, .12, 'triangle', .3); }   // カチッ（コンボで音が上がる）
   if (name === 'miss') { tone(180, t, .18, 'sawtooth', .12); tone(140, t + .1, .22, 'sawtooth', .12); }
   if (name === 'layer') [660, 830, 990].forEach((f, i) => tone(f, t + i * .07, .18, 'triangle', .22));
+  if (name === 'heart') [880, 1175, 1568].forEach((f, i) => tone(f, t + i * .07, .2, 'triangle', .22));
   if (name === 'clear') [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, t + i * .11, i === 5 ? .6 : .2, 'triangle', .25));
 }
 $id('soundBtn').textContent = soundOn ? '🔊' : '🔇';
@@ -274,6 +277,36 @@ function showCombo() {
   el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
 }
 
+// ---- 飛んでくる ♥ ----
+// 前半に 1 回・後半に 1 回、ランダムな数だけはめたところで ♥ が画面を横切る。時間内にタップすると ♥ が 1 つ戻る
+// ♥ がいっぱいのときは何も起きない（取った数だけ数えておく。将来の得点用）
+const TOTAL = P.bricks.length;
+const heartAt = [.15 + Math.random() * .3, .55 + Math.random() * .35].map(r => Math.max(1, Math.round(r * TOTAL)));
+let heartNext = 0, heartBonus = 0, stopHeart = null;
+function flyHeart(onCatch, ms = 3200) {
+  const r = box.getBoundingClientRect(), size = 56, fromLeft = Math.random() < .5;
+  const x0 = fromLeft ? r.left - size : r.right, x1 = fromLeft ? r.right : r.left - size, y0 = r.top + r.height * (.25 + Math.random() * .4);
+  const el = document.createElement('button'); el.type = 'button'; el.className = 'fly-heart'; el.textContent = '❤️'; el.setAttribute('aria-label', '♥ をタップして取る');
+  document.body.appendChild(el);
+  const st = performance.now(); let done = false; const end = () => { done = true; el.remove(); };
+  const step = now => { if (done) return; const p = (now - st) / ms; if (p >= 1) return end();
+    el.style.transform = `translate(${x0 + (x1 - x0) * p}px, ${y0 + Math.sin(p * Math.PI * 4) * 24}px)`; requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (done) return; const b = el.getBoundingClientRect(); end(); onCatch(b.left + b.width / 2, b.top + b.height / 2); });
+  return end;
+}
+function maybeHeart() {
+  if (heartNext >= heartAt.length || placed.size < heartAt[heartNext] || over) return;
+  heartNext++;
+  stopHeart = flyHeart((x, y) => {
+    stopHeart = null; if (over) return;
+    sfx('heart'); confetti(x, y, 30, .8);
+    const t = hearts < 3 ? '♥ 復活！' : '♥ いっぱい！';
+    if (hearts < 3) { hearts++; updateStatus(); } else heartBonus++;
+    say(t); const el = $id('combo'); el.textContent = t; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  });
+}
+
 // ---- 進行 ----
 function say(s) { $('msg').textContent = s; clearTimeout(say.t); say.t = setTimeout(() => $('msg').textContent = '', 1400); }
 function updateStatus() {
@@ -295,10 +328,10 @@ function tap(e) {
     placed.add(b); const o = obj.get(b); o.drop = 1; refresh3d();
     combo++; sfx('place', combo); showCombo(); navigator.vibrate?.(15);
     if (!left(layer).length) {
-      if (layer === H - 1) { updateStatus(); $('tray').innerHTML = ''; return clear(); }
+      if (layer === H - 1) { updateStatus(); $('tray').innerHTML = ''; stopHeart?.(); return clear(); }
       say(`${layer + 1}段目クリア！`); setTimeout(() => sfx('layer'), 120); confetti(...center(cv), 36, .8); setTimeout(() => startLayer(layer + 1), 350);
     }
-    drawTray(); updateStatus();
+    drawTray(); updateStatus(); maybeHeart();
   } else {
     hearts--; combo = 0; sfx('miss'); missAt = {x, z, t: performance.now()}; navigator.vibrate?.([60, 40, 60]);
     cv.classList.remove('shake'); void cv.offsetWidth; cv.classList.add('shake');
@@ -318,7 +351,7 @@ $('hintBtn').onclick = () => { if (!hints || over) return; hints--; hintUntil = 
 const fmt = ms => (ms / 1000).toFixed(1);
 function overlay(html) { $('overCard').innerHTML = html; $('over').style.display = 'flex'; }
 function gameOver() {
-  over = true;
+  over = true; stopHeart?.();
   overlay(`<h2>ざんねん…</h2><p>${layer + 1}段目で♥がなくなりました</p><button onclick="location.reload()">もう一度</button><a class="sub" href="./?plan=${CH.key}">組立ガイドで確かめる</a>`);
 }
 function clear() {
