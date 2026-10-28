@@ -79,6 +79,7 @@ summary{font-weight:700;cursor:pointer}
 .mode-close{position:absolute;top:6px;right:6px;width:44px;height:44px;border:0;background:transparent;font-size:24px;color:#7a6e73;cursor:pointer}
 .mode-btn{display:block;margin:8px 0 0;padding:12px;border-radius:12px;background:#e65f91;color:#fff;text-decoration:none;text-align:left}
 .mode-btn.g{background:#5b6bd6}
+.mode-btn.h{background:#3c3237}
 .mode-btn strong{display:block;font-size:17px}
 .mode-btn span{display:block;font-size:12px;margin-top:2px;opacity:.95}
 </style>
@@ -146,6 +147,7 @@ summary{font-weight:700;cursor:pointer}
     <h2 id="modeTitle">モードをえらぶ</h2>
     <a class="mode-btn" id="modeGuide"><strong>組立ガイド</strong><span>実物を組むときに、1個ずつ置く場所を光らせて案内します</span></a>
     <a class="mode-btn g" id="modeGame"><strong>ゲーム</strong><span>画面の上でパーツを選んで置きます。♥3つでタイムに挑戦</span></a>
+    <a class="mode-btn h" id="modeHard"><strong>ゲーム（むずかしい）</strong><span>ポッチの少ないパーツから順に置くルール。順番をまちがえると♥が減ります</span></a>
   </div>
 </div>
 <nav class="nav" id="nav" style="display:none"><div><button id="prev">◀ 戻る</button><button id="next">次へ ▶</button></div></nav>
@@ -180,6 +182,7 @@ if (!CH) {   // ---- キャラ選び ----
     document.getElementById('modeTitle').textContent = `${c.name}｜モードをえらぶ`;
     document.getElementById('modeGuide').href = `?plan=${c.key}`;
     document.getElementById('modeGame').href = `game.html?plan=${c.key}`;
+    document.getElementById('modeHard').href = `game.html?plan=${c.key}&hard=1`;
     mode.hidden = false;
     document.getElementById('modeGuide').focus();
   };
