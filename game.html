@@ -82,7 +82,7 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
       <canvas id="plan2d"></canvas>
     </div>
   </div>
-  <p style="font-size:12px;color:#7a6e73;margin:8px 2px">下のパーツを選んで、上から見た図の置く場所をタップ（下が正面）。まちがえると♥が減ります。</p>
+  <p id="rule" style="font-size:12px;color:#7a6e73;margin:8px 2px">下のパーツを選んで、上から見た図の置く場所をタップ（下が正面）。まちがえると♥が減ります。</p>
   <footer class="legal">
     <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
     <p><a href="https://naoblock.jp/">naoblock.jp へ</a></p>
@@ -98,6 +98,7 @@ import {wirePrint} from './print3d.js';
 import {sound, confetti, centerOf as center, showCombo, popText, createHeartBonus, catchHeart} from './kit.js';
 
 const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
+const HARD = new URLSearchParams(location.search).get('hard') === '1';
 const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー'};
 const col = c => PAL[c] ? c : 'black';
 const rgb = c => PAL[col(c)];
@@ -118,8 +119,9 @@ function outline(cells, d = 0) {
   return v.map((q, i) => { const a = v[(i + v.length - 1) % v.length], b = v[(i + 1) % v.length], n = (u, w) => [-Math.sign(w[1] - u[1]), Math.sign(w[0] - u[0])];
     const [n1, n2] = [n(a, q), n(q, b)]; return [q[0] + d * (n1[0] + n2[0]), q[1] + d * (n1[1] + n2[1])]; });
 }
-document.title = `${CH.name}ミニナノ風 ゲーム`;
+document.title = `${CH.name}ミニナノ風 ゲーム${HARD ? '（むずかしい）' : ''}`;
 document.getElementById('h1').textContent = document.title;
+if (HARD) document.getElementById('rule').textContent += '【むずかしい】同じ段では、ポッチの少ないパーツから置いてね（同じ数ならどれからでもOK）。';
 
 const $ = id => document.getElementById(id), $id = $;
 // ---- 状態 ----
@@ -127,8 +129,11 @@ const placed = new Set();
 let layer = 0, hearts = 3, hints = 3, sel = null, guideOn = true, blinkOn = false, t0 = 0, tEnd = 0, over = false, hintUntil = 0, missAt = null;
 const layerBricks = y => P.bricks.filter(b => b.y === y);
 const left = y => layerBricks(y).filter(b => !placed.has(b));
-const bestKey = () => `mininano-best-${CH.key}-${!guideOn ? 'n' : blinkOn ? 'g' : 'p'}`;
-const guideName = () => !guideOn ? 'ガイドなし' : blinkOn ? 'ガイド点滅' : 'ガイドあり';
+// むずかしいモード（?hard=1）：同じ段の中は、ポッチの少ないパーツから置く（同じ数ならどれからでも）。トレーの並びはシャッフル
+const studs = b => b.cells.length;   // 丸1×1は1、L字は3、T字は4
+let trayOrder = new Map();
+const bestKey = () => `mininano-best-${CH.key}-${!guideOn ? 'n' : blinkOn ? 'g' : 'p'}${HARD ? '-h' : ''}`;
+const guideName = () => (!guideOn ? 'ガイドなし' : blinkOn ? 'ガイド点滅' : 'ガイドあり') + (HARD ? '・むずかしい' : '');
 
 // ---- 上から見た図 ----
 const cv = document.getElementById('plan2d'), ctx = cv.getContext('2d');
@@ -188,7 +193,9 @@ function drawTray() {
   if (sel && !m.has(sel)) sel = null;
   if (!sel && m.size === 1) sel = [...m.keys()][0];
   const tray = document.getElementById('tray'); tray.innerHTML = '';
-  for (const [k, n] of [...m].sort()) {
+  const ent = [...m].sort();
+  if (HARD) { for (const [k] of ent) if (!trayOrder.has(k)) trayOrder.set(k, Math.random()); ent.sort((a, b) => trayOrder.get(a[0]) - trayOrder.get(b[0])); }
+  for (const [k, n] of ent) {
     const [c, kd] = k.split('|'), btn = document.createElement('button');
     btn.className = k === sel ? 'sel' : ''; btn.append(pieceIcon(kd, c));
     btn.insertAdjacentHTML('beforeend', `<span>${JNAME[c]} ${kindName(kd)}</span><span>×${n}</span>`);
@@ -259,7 +266,7 @@ function updateStatus() {
   $('hearts').textContent = '♥'.repeat(hearts) + '♡'.repeat(3 - hearts);
   $('hintBtn').textContent = `💡 ${hints}`; $('hintBtn').disabled = hints === 0;
 }
-function startLayer(y) { layer = y; sel = null; drawTray(); updateStatus(); refresh3d(); if (y) { const el = $('layerNo'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); } }
+function startLayer(y) { layer = y; sel = null; trayOrder = new Map(); drawTray(); updateStatus(); refresh3d(); if (y) { const el = $('layerNo'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); } }
 function tap(e) {
   if (over) return;
   const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
@@ -268,7 +275,8 @@ function tap(e) {
   if (!sel) { say('先にパーツを選んでね'); return; }
   if (!t0) t0 = performance.now();
   const b = left(layer).find(b => b.cells.some(c => c[0] === x && c[2] === z));
-  if (b && key(b) === sel) {
+  const early = HARD && b && key(b) === sel && studs(b) > Math.min(...left(layer).map(studs));
+  if (b && key(b) === sel && !early) {
     placed.add(b); const o = obj.get(b); o.drop = 1; refresh3d();
     combo++; sound.place(combo); showCombo($id('combo'), combo); navigator.vibrate?.(15);
     if (!left(layer).length) {
@@ -279,7 +287,7 @@ function tap(e) {
   } else {
     hearts--; combo = 0; sound.miss(); missAt = {x, z, t: performance.now()}; navigator.vibrate?.([60, 40, 60]);
     cv.classList.remove('shake'); void cv.offsetWidth; cv.classList.add('shake');
-    say(b ? 'ちがうパーツです' : 'そこじゃないよ'); updateStatus();
+    say(early ? 'ポッチの少ないパーツから！' : b ? 'ちがうパーツです' : 'そこじゃないよ'); updateStatus();
     if (!hearts) gameOver();
   }
 }
