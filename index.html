@@ -61,6 +61,8 @@ td.n{text-align:right;font-weight:700}
 .sw{display:inline-block;vertical-align:middle;width:16px;height:16px;border-radius:4px;border:1px solid #0003}
 details{margin-top:12px}
 summary{font-weight:700;cursor:pointer}
+.play{display:block;width:100%;margin-top:8px;font:inherit;font-size:15px;font-weight:700;border:0;border-radius:12px;padding:12px;background:#eadfe3;color:#3c3237}
+.play.on{background:#e65f91;color:#fff}
 .print-card .btns{display:flex;gap:8px;margin:8px 0}
 .print-card button{flex:1;font:inherit;font-size:15px;font-weight:700;border:0;border-radius:12px;padding:12px;background:#eadfe3;color:#3c3237}
 .print-card button.primary{background:#e65f91;color:#fff}
@@ -114,7 +116,8 @@ summary{font-weight:700;cursor:pointer}
     <div class="bar"><i id="barIn"></i></div>
     <div class="layout">
       <div class="card"><div id="view3d"><button id="auto" class="on">自動で回す</button></div>
-        <p class="note">光っているところに置きます。指で回せます。</p></div>
+        <p class="note">光っているところに置きます。指で回せます。</p>
+        <button id="play" class="play">⏩ 最後まで自動で組み立てる</button></div>
       <div class="side">
         <div class="card">
           <div id="pieceName"></div>
@@ -350,7 +353,7 @@ new ResizeObserver(resize).observe(box); resize();
 // ---- 手順の切りかえ ----
 let cur = 0, finished = false;
 const stepIdx = new Map(steps.map((t, i) => [t.b, i]));   // 何番目に置くか（大きい作品で毎回探さない）
-function show(i) {
+function show(i, quiet) {   // quiet：自動で組み立てている間（カメラと URL は動かさない）
   cur = Math.max(0, Math.min(steps.length - 1, i)); finished = false;
   const s = steps[cur], ls = layerSteps(s.y), k = ls.indexOf(s) + 1;
   for (const [b, o] of brickObj) { const idx = stepIdx.get(b); o.grp.visible = idx <= cur; o.ghost.visible = idx > cur; o.glow.visible = idx === cur; o.grp.position.y = o.c.y; }
@@ -368,6 +371,7 @@ function show(i) {
   document.getElementById('prev').disabled = cur === 0;
   document.getElementById('next').textContent = cur === steps.length - 1 ? '完成 🎉' : '次へ ▶';
   drawPiece(s.b);
+  if (quiet) return;
   auto = true; autoBtn.classList.add('on'); aim(s);
   history.replaceState(null, '', `?plan=${CH.key}&step=${cur + 1}`);
 }
@@ -380,8 +384,20 @@ function finish() {
   document.getElementById('barIn').style.width = '100%';
   auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .35, ty: H * A / 2, r: Math.max(32, H * A * 3.2), spin: true};
 }
-document.getElementById('prev').onclick = () => finished ? show(cur) : show(cur - 1);
-document.getElementById('next').onclick = () => cur === steps.length - 1 ? finish() : show(cur + 1);
+// ---- 最後まで自動で組み立てる（2D版のれんしゅうと同じ 0.1 秒ごと。大きい作品は 45 秒くらいで終わる速さに上げる） ----
+const AUTO_MS = Math.min(100, 45000 / steps.length);
+const playBtn = document.getElementById('play');
+let playing = false, playAcc = 0, playLast = 0;
+function stopPlay() { playing = false; playBtn.textContent = '⏩ 最後まで自動で組み立てる'; playBtn.classList.remove('on'); }
+playBtn.onclick = () => {
+  if (playing) { stopPlay(); show(cur); return; }
+  if (finished || cur === steps.length - 1) show(0, true);   // 完成のあとは、はじめから
+  playing = true; playAcc = 0; playLast = performance.now();
+  playBtn.textContent = '⏹ 自動を止める'; playBtn.classList.add('on');
+  auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .45, ty: H * A / 2, r: Math.max(28, H * A * 2.8), spin: true};   // 全体を回しながら見る
+};
+document.getElementById('prev').onclick = () => { if (playing) { stopPlay(); return show(cur); } finished ? show(cur) : show(cur - 1); };
+document.getElementById('next').onclick = () => { if (playing) { stopPlay(); return show(cur); } cur === steps.length - 1 ? finish() : show(cur + 1); };
 addEventListener('keydown', e => { if (e.key === 'ArrowLeft') document.getElementById('prev').click(); if (e.key === 'ArrowRight') document.getElementById('next').click(); });
 
 const sph = new THREE.Spherical();
@@ -395,6 +411,11 @@ const sph = new THREE.Spherical();
     sph.radius += (goal.r - sph.radius) * .08;
     ctl.target.y += (goal.ty - ctl.target.y) * .08;
     cam.position.copy(ctl.target).add(new THREE.Vector3().setFromSpherical(sph));
+  }
+  if (playing && t) {
+    playAcc += t - playLast; playLast = t;
+    const n = Math.floor(playAcc / AUTO_MS);
+    if (n) { playAcc -= n * AUTO_MS; if (cur + n >= steps.length - 1) { stopPlay(); finish(); } else show(cur + n, true); }
   }
   glowMat.opacity = .15 + .3 * Math.sin((t || 0) / 180) ** 2;
   if (!finished) {   // 次に置くパーツは、上からふわふわ下りてくる
