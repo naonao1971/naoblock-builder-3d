@@ -116,7 +116,7 @@ function makeShooter(P) {
 // ---- 手順：組立ガイドと同じ順（奥から手前、左から右。宙づりのパーツは 1 つ上の段のあとに下から差し込む） ----
 function layerSteps(P) {
   const occ = new Set(P.bricks.flatMap(b => b.cells.map(c => c.join())));
-  const hanging = b => b.y > 0 && !b.cells.some(([x, y, z]) => occ.has([x, y - 1, z].join()));
+  const hanging = b => b.y > 0 && b.y !== P.lidY && !b.cells.some(([x, y, z]) => occ.has([x, y - 1, z].join()));
   const out = [];
   for (let y = 0; y < P.H; y++) {
     const layer = P.bricks.filter(b => b.y === y && !hanging(b));

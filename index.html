@@ -230,12 +230,18 @@ document.getElementById('back').style.display = 'inline';
 
 // ---- 手順：1個ずつ。下に何もないパーツ（宙づり・あごの斜め）は、1つ上の段を組んだあとに下から差し込む ----
 const occ = new Set(P.bricks.flatMap(b => b.cells.map(c => c.join())));
-const hanging = b => b.y > 0 && !b.cells.some(([x, y, z]) => occ.has([x, y - 1, z].join()));
+const hanging = b => b.y > 0 && b.y !== P.lidY && !b.cells.some(([x, y, z]) => occ.has([x, y - 1, z].join()));
+// ふたのある作品（P.lidY＝ふたの1段目）：その段で下に何もないパーツは、箱ではなく机の上に並べる。壁のあとに回す
+//   その上の段で机の上のパーツに乗るものもふた。乗らないふち（壁の真上）は、ふたを箱にかぶせたあとに置く
+const onTable = b => b.y === P.lidY && !b.cells.some(([x, y, z]) => occ.has([x, y - 1, z].join()));
+const tableCells = new Set(P.bricks.filter(onTable).flatMap(b => b.cells.map(c => c.join())));
+const lidPart = b => onTable(b) || b.y > P.lidY && b.cells.some(([x, y, z]) => tableCells.has([x, y - 1, z].join()));
+const lidOrder = b => b.y < P.lidY ? 0 : b.y === P.lidY ? +lidPart(b) : +!lidPart(b);   // 38段目は壁→ふた、39段目はふた→ふち
 const steps = [];
 for (let y = 0; y < H; y++) {
   const layer = P.bricks.filter(b => b.y === y && !hanging(b));
-  layer.sort((a, b) => Math.max(...b.cells.map(c => c[2])) - Math.max(...a.cells.map(c => c[2])) || Math.min(...a.cells.map(c => c[0])) - Math.min(...b.cells.map(c => c[0])));   // 奥から手前、左から右
-  layer.forEach(b => steps.push({b, y}));
+  layer.sort((a, b) => lidOrder(a) - lidOrder(b) || Math.max(...b.cells.map(c => c[2])) - Math.max(...a.cells.map(c => c[2])) || Math.min(...a.cells.map(c => c[0])) - Math.min(...b.cells.map(c => c[0])));   // 奥から手前、左から右
+  layer.forEach(b => steps.push({b, y, lid: y > P.lidY ? (lidPart(b) ? 'lid' : 'rim') : onTable(b) && 'lid'}));
   P.bricks.filter(b => b.y === y - 1 && hanging(b)).forEach(b => steps.push({b, y: b.y, under: true}));
 }
 const layerSteps = y => steps.filter(s => s.y === y);
@@ -337,7 +343,8 @@ ctl.target.set(mx, H * A / 2, mz);
 const DEF_AZ = .45;
 cam.position.set(mx + 20 * Math.sin(DEF_AZ), H * A / 2 + 12, mz + 20 * Math.cos(DEF_AZ));
 const autoBtn = document.getElementById('auto');
-let auto = true, goal = {az: DEF_AZ, el: .5, ty: H * A / 2, r: Math.max(24, H * A * 2.4)};
+const SZ = Math.max(H * A, P.camSize || 0);   // 引きの距離の目安（平たくて大きい作品は camSize で横幅に合わせる）
+let auto = true, goal = {az: DEF_AZ, el: .5, ty: H * A / 2, r: Math.max(24, SZ * 2.4)};
 autoBtn.onclick = () => { auto = !auto; autoBtn.classList.toggle('on', auto); };
 ctl.addEventListener('start', () => { auto = false; autoBtn.classList.remove('on'); });
 function aim(s) {   // パーツが見える向き：体の中心から見て、パーツのある側へ回る
@@ -363,8 +370,11 @@ function show(i, quiet) {   // quiet：自動で組み立てている間（カ�
   document.getElementById('pieceName').textContent = `${JNAME[col(s.b.col)]} ${shapeName(s.b.shape)}`;
   document.getElementById('t2d').textContent = `${s.y + 1}段目を上から`;
   const tip = document.getElementById('tip');
-  tip.style.display = s.under ? 'block' : 'none';
-  tip.textContent = s.b.shape.startsWith('slope') ? '1つ上の段まで組んだので、下から差し込みます（斜めの面を下・前向きに）。'
+  tip.style.display = s.under || s.lid ? 'block' : 'none';
+  tip.textContent = s.lid === 'rim' ? 'ふたを箱にかぶせたら、残りのふちを壁の上に置きます。'
+    : s.lid ? (s.y === P.lidY ? 'ここからはふたです。箱には入れず、机の上に並べます（ふたの裏になる段です）。'
+      : 'ふたの2段目です。机の上に並べた段に重ねます。全部できたら、ふたごと箱にかぶせます。')
+    : s.b.shape.startsWith('slope') ? '1つ上の段まで組んだので、下から差し込みます（斜めの面を下・前向きに）。'
     : '下に乗る場所がないパーツです。1つ上の段まで組んだので、ひっくり返して下から差し込みます。';
   document.getElementById('pieceIcon').style.display = 'block'; document.getElementById('pieceName').style.display = 'block';
   document.getElementById('done').style.display = 'none';
@@ -382,7 +392,7 @@ function finish() {
   document.getElementById('done').style.display = 'block';
   document.getElementById('stepSub').textContent = `全${steps.length}個 組み終わりました`;
   document.getElementById('barIn').style.width = '100%';
-  auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .35, ty: H * A / 2, r: Math.max(32, H * A * 3.2), spin: true};
+  auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .35, ty: H * A / 2, r: Math.max(32, SZ * 3.2), spin: true};
 }
 // ---- 最後まで自動で組み立てる（2D版のれんしゅうと同じ 0.1 秒ごと。大きい作品は 45 秒くらいで終わる速さに上げる） ----
 const AUTO_MS = Math.min(100, 45000 / steps.length);
@@ -394,7 +404,7 @@ playBtn.onclick = () => {
   if (finished || cur === steps.length - 1) show(0, true);   // 完成のあとは、はじめから
   playing = true; playAcc = 0; playLast = performance.now();
   playBtn.textContent = '⏹ 自動を止める'; playBtn.classList.add('on');
-  auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .45, ty: H * A / 2, r: Math.max(28, H * A * 2.8), spin: true};   // 全体を回しながら見る
+  auto = true; autoBtn.classList.add('on'); goal = {az: DEF_AZ, el: .45, ty: H * A / 2, r: Math.max(28, SZ * 2.8), spin: true};   // 全体を回しながら見る
 };
 document.getElementById('prev').onclick = () => { if (playing) { stopPlay(); return show(cur); } finished ? show(cur) : show(cur - 1); };
 document.getElementById('next').onclick = () => { if (playing) { stopPlay(); return show(cur); } cur === steps.length - 1 ? finish() : show(cur + 1); };
