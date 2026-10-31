@@ -85,6 +85,7 @@ summary{font-weight:700;cursor:pointer}
 .archive-gate .line-btn{display:inline-block;margin:10px 4px 0;padding:12px 18px;border:0;border-radius:12px;background:#06c755;color:#fff;font:inherit;font-size:16px;font-weight:700;text-decoration:none;cursor:pointer}
 .archive-gate .line-btn.sub{background:#eadfe3;color:#3c3237}
 .season{font-size:16px;margin:16px 0 8px}
+.logout{border:0;background:transparent;color:#c2185b;font:inherit;text-decoration:underline;padding:8px;cursor:pointer}
 .season:first-child{margin-top:0}
 /* モードをえらぶ（小窓） */
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,30,35,.45)}
@@ -206,7 +207,9 @@ if (!CH) {   // ---- キャラ選び ----
   const gate = (msg, btns) => { archiveEl.innerHTML = `<div class="card archive-gate">${msg}<div>${btns}</div><p class="note">ログインで受け取るのは、友だちかどうかの確認に使う LINE の情報だけです。<a href="privacy.html">プライバシーポリシー</a></p></div>`; };
   const showArchive = () => {
     archiveEl.innerHTML = `<div class="chars">${ARCHIVED.map(cat =>
-      `<h3 class="season" style="grid-column:1/-1">${cat.label} ${cat.until.slice(0, 4)}</h3>${cards(CHARS.filter(c => c.cat === cat.key))}`).join('')}</div>`;
+      `<h3 class="season" style="grid-column:1/-1">${cat.label} ${cat.until.slice(0, 4)}</h3>${cards(CHARS.filter(c => c.cat === cat.key))}`).join('')}</div>
+      <p class="note" style="text-align:center;margin-top:12px">LINE でログイン中です。<button type="button" class="logout" id="liffLogout">ログアウト</button></p>`;
+    document.getElementById('liffLogout').onclick = () => { liff.logout(); openArchive(); };
   };
   let liffReady;
   const loadLiff = () => liffReady ||= new Promise((ok, ng) => {
