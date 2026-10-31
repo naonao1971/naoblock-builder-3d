@@ -75,6 +75,17 @@ summary{font-weight:700;cursor:pointer}
 .tabs{display:flex;gap:4px;margin:0 0 12px;border-bottom:2px solid #3c3237;overflow-x:auto;scrollbar-width:none}
 .tabs button{flex:0 0 auto;min-height:44px;padding:8px 16px;margin-bottom:-2px;border:2px solid transparent;border-radius:10px 10px 0 0;background:transparent;color:#7a6e73;font:inherit;font-size:16px;font-weight:700;white-space:nowrap;cursor:pointer}
 .tabs button[aria-selected="true"]{color:#c2185b;border-color:#3c3237;border-bottom-color:#f4f1ec;background:#f4f1ec}
+/* LINE友だち限定アーカイブ（期間が終わった作品） */
+.archive-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:48px;margin:0 0 12px;padding:10px 14px;border:0;border-radius:12px;background:#06c755;color:#fff;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.archive-btn[hidden],.chars[hidden],#archive[hidden]{display:none}
+.archive-btn[aria-pressed="true"]{background:#04a346}
+.archive-btn small{font-size:13px;font-weight:400;opacity:.95}
+.archive-gate{text-align:center;padding:16px}
+.archive-gate p{margin:6px 0}
+.archive-gate .line-btn{display:inline-block;margin:10px 4px 0;padding:12px 18px;border:0;border-radius:12px;background:#06c755;color:#fff;font:inherit;font-size:16px;font-weight:700;text-decoration:none;cursor:pointer}
+.archive-gate .line-btn.sub{background:#eadfe3;color:#3c3237}
+.season{font-size:16px;margin:16px 0 8px}
+.season:first-child{margin-top:0}
 /* モードをえらぶ（小窓） */
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,30,35,.45)}
 .modal[hidden]{display:none}
@@ -107,7 +118,9 @@ summary{font-weight:700;cursor:pointer}
     <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がるミニナノ風を見ている絵">
     <h2>どの子を組みますか？</h2>
     <div class="tabs" id="tabs" role="tablist" aria-label="キャラの種類"></div>
+    <button type="button" class="archive-btn" id="archiveBtn" aria-pressed="false" hidden>🔒 LINE友だち限定アーカイブ <small id="archiveCount"></small></button>
     <div class="chars" id="chars"></div>
+    <div id="archive" hidden></div>
     <p class="note" style="text-align:center">ミニナノのケース（プレートなし）に入る大きさです。</p>
   </section>
 
@@ -143,6 +156,7 @@ summary{font-weight:700;cursor:pointer}
   <footer class="legal">
     <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
     <p><a href="https://naoblock.jp/">naoblock.jp へ</a></p>
+    <p><a href="privacy.html" style="font-size:12px;font-weight:400">プライバシーポリシー</a></p>
   </footer>
 </main>
 <!-- キャラのカードを押すと出る「モードをえらぶ」（2D版と同じ流れ） -->
@@ -167,21 +181,76 @@ if (!CH) {   // ---- キャラ選び ----
   // カテゴリーのタブ（2D版 builder.naoblock.jp と同じ並び）。キャラが 1 体もいないタブは出さない
   // until つきは期間限定（日本時間でその日が終わったら出さない。?plan= の直リンクからは期間後も組める）
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  const CATEGORIES = [{key: 'halloween', label: '🎃ハロウィン', until: '2026-10-31'}, {key: 'nouns', label: 'Nouns'}, {key: 'ninja', label: 'クリプト忍者'}, {key: 'cnp', label: 'CNP'}, {key: 'qr', label: 'nanoQR'}]
-    .filter(cat => CHARS.some(c => c.cat === cat.key) && !(cat.until && today > cat.until));
+  // 期間が終わったカテゴリーは、タブから消えて「LINE友だち限定アーカイブ」に移る（新しい季節が上）
+  const ALL_CATEGORIES = [{key: 'halloween', label: '🎃ハロウィン', until: '2026-10-31'}, {key: 'nouns', label: 'Nouns'}, {key: 'ninja', label: 'クリプト忍者'}, {key: 'cnp', label: 'CNP'}, {key: 'qr', label: 'nanoQR'}]
+    .filter(cat => CHARS.some(c => c.cat === cat.key));
+  const CATEGORIES = ALL_CATEGORIES.filter(cat => !(cat.until && today > cat.until));
+  const ARCHIVED = ALL_CATEGORIES.filter(cat => cat.until && today > cat.until).sort((a, b) => b.until.localeCompare(a.until));
   const tabs = document.getElementById('tabs');
+  const charsEl = document.getElementById('chars'), archiveEl = document.getElementById('archive'), archiveBtn = document.getElementById('archiveBtn');
+  const cards = list => list.filter(c => !c.hidden).map(c =>
+    `<button type="button" class="card" data-key="${c.key}"><img src="thumb_${c.key}.png" alt=""><b>${c.name}</b></button>`).join('');
   const select = key => {
     tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.key === key)));
-    document.getElementById('chars').innerHTML = CHARS.filter(c => c.cat === key && !c.hidden).map(c =>
-      `<button type="button" class="card" data-key="${c.key}"><img src="thumb_${c.key}.png" alt=""><b>${c.name}</b></button>`).join('');
+    archiveBtn.setAttribute('aria-pressed', 'false');
+    charsEl.hidden = false; archiveEl.hidden = true;
+    charsEl.innerHTML = cards(CHARS.filter(c => c.cat === key));
     history.replaceState(null, '', `${location.pathname}${location.search}#${key}`);
   };
+
+  // ---- LINE友だち限定アーカイブ（LIFF でログイン → 公式LINEの友だちか確かめる。ブラウザ内だけの判定）----
+  const LIFF_ID = '2012312496-59uWZzj6', LINE_ADD = 'https://line.me/R/ti/p/@134wkonl';
+  const archiveCount = ARCHIVED.reduce((n, cat) => n + CHARS.filter(c => c.cat === cat.key && !c.hidden).length, 0);
+  archiveBtn.hidden = !archiveCount;
+  document.getElementById('archiveCount').textContent = `（${archiveCount}体）`;
+  const gate = (msg, btns) => { archiveEl.innerHTML = `<div class="card archive-gate">${msg}<div>${btns}</div><p class="note">ログインで受け取るのは、友だちかどうかの確認に使う LINE の情報だけです。<a href="privacy.html">プライバシーポリシー</a></p></div>`; };
+  const showArchive = () => {
+    archiveEl.innerHTML = `<div class="chars">${ARCHIVED.map(cat =>
+      `<h3 class="season" style="grid-column:1/-1">${cat.label} ${cat.until.slice(0, 4)}</h3>${cards(CHARS.filter(c => c.cat === cat.key))}`).join('')}</div>`;
+  };
+  let liffReady;
+  const loadLiff = () => liffReady ||= new Promise((ok, ng) => {
+    const s = document.createElement('script');
+    s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+    s.onload = () => liff.init({liffId: LIFF_ID}).then(ok, ng);
+    s.onerror = ng;
+    document.head.append(s);
+  });
+  const openArchive = async () => {
+    tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', 'false'));
+    archiveBtn.setAttribute('aria-pressed', 'true');
+    charsEl.hidden = true; archiveEl.hidden = false;
+    gate('<p>LINE を確かめています…</p>', '');
+    try {
+      await loadLiff();   // ログインから戻ったときの ?code= は liff.init が読むので、URL はそのあとで整える
+      history.replaceState(null, '', `${location.pathname}#archive`);
+      if (!liff.isLoggedIn()) {
+        gate('<p><b>期間が終わった作品は、公式LINE「ナオブロックラボ」の友だち限定で遊べます。</b></p><p>LINE でログインすると、そのまま友だち追加もできます。</p>',
+          '<button type="button" class="line-btn" id="liffLogin">LINE でログインして開く</button>');
+        document.getElementById('liffLogin').onclick = () => {
+          sessionStorage.setItem('nbArchive', '1');
+          liff.login({redirectUri: `${location.origin}${location.pathname}#archive`});
+        };
+        return;
+      }
+      const {friendFlag} = await liff.getFriendship();
+      if (friendFlag) return showArchive();
+      gate('<p><b>あと一歩です！</b></p><p>公式LINE「ナオブロックラボ」を友だち追加すると、アーカイブで遊べます。</p>',
+        `<a class="line-btn" href="${LINE_ADD}" target="_blank" rel="noopener">友だち追加する</a><button type="button" class="line-btn sub" id="liffRecheck">追加したので確かめる</button>`);
+      document.getElementById('liffRecheck').onclick = openArchive;
+    } catch (err) {
+      console.error(err);
+      gate('<p>LINE とつながりませんでした。時間をおいて、もう一度ためしてください。</p>', '<button type="button" class="line-btn sub" id="liffRetry">もう一度</button>');
+      document.getElementById('liffRetry').onclick = () => { liffReady = null; openArchive(); };
+    }
+  };
+  archiveBtn.onclick = openArchive;
   tabs.innerHTML = CATEGORIES.map(cat => `<button type="button" role="tab" data-key="${cat.key}">${cat.label}</button>`).join('');
   tabs.onclick = e => { const b = e.target.closest('button'); if (b) select(b.dataset.key); };
   // カードを押したら、中でモードを選ぶ
   const mode = document.getElementById('mode');
   const closeMode = () => { mode.hidden = true; };
-  document.getElementById('chars').onclick = e => {
+  const pick = e => {
     const c = CHARS.find(c => c.key === e.target.closest('button')?.dataset.key);
     if (!c) return;
     document.getElementById('modeImg').src = `thumb_${c.key}.png`;
@@ -192,11 +261,16 @@ if (!CH) {   // ---- キャラ選び ----
     mode.hidden = false;
     document.getElementById('modeGuide').focus();
   };
+  charsEl.onclick = archiveEl.onclick = pick;
   document.getElementById('modeClose').onclick = closeMode;
   mode.onclick = e => { if (e.target === mode) closeMode(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMode(); });
   const hash = location.hash.slice(1);
-  select(CATEGORIES.some(cat => cat.key === hash) ? hash : CATEGORIES[0].key);
+  // LINE ログインから戻ってきたとき（?code= つき）もアーカイブを開き直す
+  if (archiveCount && (hash === 'archive' || sessionStorage.getItem('nbArchive') || new URLSearchParams(location.search).has('liff.state'))) {
+    sessionStorage.removeItem('nbArchive');
+    openArchive();
+  } else select(CATEGORIES.some(cat => cat.key === hash) ? hash : CATEGORIES[0].key);
 } else guide();
 function guide() {
 
