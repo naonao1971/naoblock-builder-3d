@@ -109,6 +109,7 @@ summary{font-weight:700;cursor:pointer}
     {key: 'mitama', cat: 'cnp', name: 'ミタマ', file: 'plan_mitama'}, {key: 'leelee', cat: 'cnp', name: 'リーリー', file: 'plan_leelee'}, {key: 'yama', cat: 'cnp', name: 'ヤーマ', file: 'plan_yama'}, {key: 'orochi', cat: 'cnp', name: 'オロチ', file: 'plan_orochi'}, {key: 'narukami', cat: 'cnp', name: 'ナルカミ', file: 'plan_narukami'}, {key: 'luna', cat: 'cnp', name: 'ルナ', file: 'plan_luna'}, {key: 'makami', cat: 'cnp', name: 'マカミ', file: 'plan_makami'}, {key: 'towa', cat: 'cnp', name: 'トワ', file: 'plan_towa'}, {key: 'emma', cat: 'cnp', name: 'エマ', file: 'plan_emma'}, {key: 'tart', cat: 'cnp', name: 'タルト', file: 'plan_tart'}, {key: 'setsuna', cat: 'cnp', name: 'セツナ', file: 'plan_setsuna'},
     {key: 'noun0', cat: 'nouns', name: 'Noun 0', file: 'plan_noun0'},
     {key: 'noun1', cat: 'nouns', name: 'Noun 1', file: 'plan_noun1'}, {key: 'qrcube', cat: 'nouns', name: 'nanoQRキューブ（お試し）', file: 'plan_qrcube', hidden: true}];   // hidden：一覧には出さず、URL直接でだけ開ける（実物で確かめ中）
+  // line: true を付けた作品は、タブには出さず「LINE友だち限定」の中にだけ出す（カテゴリーに付ければ、その中の全作品）
   const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan'));
   if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
@@ -185,8 +186,11 @@ if (!CH) {   // ---- キャラ選び ----
   // 期間が終わったカテゴリーは、タブから消えて「LINE友だち限定アーカイブ」に移る（新しい季節が上）
   const ALL_CATEGORIES = [{key: 'halloween', label: '🎃ハロウィン', until: '2026-10-31'}, {key: 'nouns', label: 'Nouns'}, {key: 'ninja', label: 'クリプト忍者'}, {key: 'cnp', label: 'CNP'}, {key: 'qr', label: 'nanoQR'}]
     .filter(cat => CHARS.some(c => c.cat === cat.key));
-  const CATEGORIES = ALL_CATEGORIES.filter(cat => !(cat.until && today > cat.until));
   const ARCHIVED = ALL_CATEGORIES.filter(cat => cat.until && today > cat.until).sort((a, b) => b.until.localeCompare(a.until));
+  const isLine = c => c.line || ALL_CATEGORIES.find(cat => cat.key === c.cat)?.line;
+  // 印つきの作品（期間が終わったカテゴリーの分は、アーカイブ側に出す）
+  const LINE_ONLY = CHARS.filter(c => isLine(c) && !c.hidden && !ARCHIVED.some(cat => cat.key === c.cat));
+  const CATEGORIES = ALL_CATEGORIES.filter(cat => !ARCHIVED.includes(cat) && CHARS.some(c => c.cat === cat.key && !c.hidden && !isLine(c)));
   const tabs = document.getElementById('tabs');
   const charsEl = document.getElementById('chars'), archiveEl = document.getElementById('archive'), archiveBtn = document.getElementById('archiveBtn');
   const cards = list => list.filter(c => !c.hidden).map(c =>
@@ -195,18 +199,19 @@ if (!CH) {   // ---- キャラ選び ----
     tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.key === key)));
     archiveBtn.setAttribute('aria-pressed', 'false');
     charsEl.hidden = false; archiveEl.hidden = true;
-    charsEl.innerHTML = cards(CHARS.filter(c => c.cat === key));
+    charsEl.innerHTML = cards(CHARS.filter(c => c.cat === key && !isLine(c)));
     history.replaceState(null, '', `${location.pathname}${location.search}#${key}`);
   };
 
   // ---- LINE友だち限定アーカイブ（LIFF でログイン → 公式LINEの友だちか確かめる。ブラウザ内だけの判定）----
   const LIFF_ID = '2012312496-59uWZzj6', LINE_ADD = 'https://line.me/R/ti/p/@134wkonl';
-  const archiveCount = ARCHIVED.reduce((n, cat) => n + CHARS.filter(c => c.cat === cat.key && !c.hidden).length, 0);
+  const archiveCount = LINE_ONLY.length + ARCHIVED.reduce((n, cat) => n + CHARS.filter(c => c.cat === cat.key && !c.hidden).length, 0);
   archiveBtn.hidden = !archiveCount;
+  if (LINE_ONLY.length) archiveBtn.firstChild.textContent = '🔒 LINE友だち限定 ';
   document.getElementById('archiveCount').textContent = `（${archiveCount}体）`;
   const gate = (msg, btns) => { archiveEl.innerHTML = `<div class="card archive-gate">${msg}<div>${btns}</div><p class="note">ログインで受け取るのは、友だちかどうかの確認に使う LINE の情報だけです。<a href="privacy.html">プライバシーポリシー</a></p></div>`; };
   const showArchive = () => {
-    archiveEl.innerHTML = `<div class="chars">${ARCHIVED.map(cat =>
+    archiveEl.innerHTML = `<div class="chars">${LINE_ONLY.length ? `<h3 class="season" style="grid-column:1/-1">🎁 友だち限定</h3>${cards(LINE_ONLY)}` : ''}${ARCHIVED.map(cat =>
       `<h3 class="season" style="grid-column:1/-1">${cat.label} ${cat.until.slice(0, 4)}</h3>${cards(CHARS.filter(c => c.cat === cat.key))}`).join('')}</div>
       <p class="note" style="text-align:center;margin-top:12px">LINE でログイン中です。<button type="button" class="logout" id="liffLogout">ログアウト</button></p>`;
     document.getElementById('liffLogout').onclick = () => { liff.logout(); openArchive(); };
@@ -228,7 +233,7 @@ if (!CH) {   // ---- キャラ選び ----
       await loadLiff();   // ログインから戻ったときの ?code= は liff.init が読むので、URL はそのあとで整える
       history.replaceState(null, '', `${location.pathname}#archive`);
       if (!liff.isLoggedIn()) {
-        gate('<p><b>期間が終わった作品は、公式LINE「ナオブロックラボ」の友だち限定で遊べます。</b></p><p>LINE でログインすると、そのまま友だち追加もできます。</p>',
+        gate(`<p><b>${LINE_ONLY.length ? '限定の作品と、期間が終わった作品' : '期間が終わった作品'}は、公式LINE「ナオブロックラボ」の友だち限定で遊べます。</b></p><p>LINE でログインすると、そのまま友だち追加もできます。</p>`,
           '<button type="button" class="line-btn" id="liffLogin">LINE でログインして開く</button>');
         document.getElementById('liffLogin').onclick = () => {
           sessionStorage.setItem('nbArchive', '1');
