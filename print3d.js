@@ -12,7 +12,7 @@ const GAP = 36, HEAD_H = 64;
 const LAYERS_PER_PAGE = 2;
 const PRICE = 220;   // 単色部品は 1 袋 220 円（どの形も 1 キャラ分なら 1 袋に収まる）
 const FONT = '"Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, -apple-system, "Yu Gothic", Meiryo, sans-serif';
-const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー'};
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー', darkgray: 'ダークグレー', lightgray: 'ライトグレー', peach: 'ピーチ', clear: 'クリア'};
 const bent = s => /^[LT]\d$/.test(s);   // L字・T字（数字は向き）
 const baseShape = s => bent(s) ? s[0] : s.replace(/[xz]$/, '');
 const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : /^[LT]\d?$/.test(s) ? s[0] + '字' : s.replace(/[xz]$/, '').replace('x', '×');
@@ -81,8 +81,9 @@ function makeShooter(P) {
   const obj = new Map();
   for (const b of P.bricks) {
     const c = new THREE.Color(...PAL[col(b.col)].map(v => v / 255));
-    const mat = new THREE.MeshLambertMaterial({ color: c });
-    const fade = new THREE.MeshLambertMaterial({ color: c.clone().lerp(new THREE.Color(0xffffff), .65) });
+    const glass = b.col === 'clear' ? { transparent: true, opacity: .35, depthWrite: false } : {};   // クリアは半透明
+    const mat = new THREE.MeshLambertMaterial({ color: c, ...glass });
+    const fade = new THREE.MeshLambertMaterial({ color: c.clone().lerp(new THREE.Color(0xffffff), .65), ...glass });
     const xs = b.cells.map(c => c[0]), zs = b.cells.map(c => c[2]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs), g = 0.07;
     let geo;
