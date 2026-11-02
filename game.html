@@ -334,7 +334,10 @@ function shareImage(ms) {   // 3Dの絵＋タイムを1枚に
   return c.toDataURL('image/png');
 }
 async function share(img, ms) {
-  const text = `${CH.name}ミニナノ風を${fmt(ms)}秒で組み立てた！ #naoblock`;
+  // 冒頭にタブの名前のハッシュタグ（index.html のタブと同じ名前。🎃などの絵文字は外す）
+  const TAB_TAGS = {halloween: '#ハロウィン', nouns: '#Nouns', ninja: '#クリプト忍者', cnp: '#CNP', kitan: '#月蝕綺譚', qr: '#nanoQR'};
+  const lead = TAB_TAGS[CH.cat] ? `${TAB_TAGS[CH.cat]} ` : '';
+  const text = `${lead}${CH.name}ミニナノ風を${fmt(ms)}秒で組み立てた！ #naoblock`;
   try {
     const file = new File([await (await fetch(img)).blob()], 'mininano.png', {type: 'image/png'});
     if (navigator.canShare?.({files: [file]})) return await navigator.share({files: [file], text});
