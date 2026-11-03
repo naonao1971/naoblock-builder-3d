@@ -1,4 +1,4 @@
-// ミニナノ風の組立図（表紙・部品リスト・買い物リスト・組立手順）。naoblock-builder の print.js と同じ作り。
+// 3D版の組立図（表紙・部品リスト・買い物リスト・組立手順）。naoblock-builder の print.js と同じ作り。
 // 各ページを A4 縦の 1 枚の絵（canvas）として描き、「PDF で保存」も「プリンターで印刷」も同じ絵から作る。
 import * as THREE from 'three';
 import { buildPdf, dataUrlBytes } from './kit.js';
@@ -12,7 +12,7 @@ const GAP = 36, HEAD_H = 64;
 const LAYERS_PER_PAGE = 2;
 const PRICE = 220;   // 単色部品は 1 袋 220 円（どの形も 1 キャラ分なら 1 袋に収まる）
 const FONT = '"Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, -apple-system, "Yu Gothic", Meiryo, sans-serif';
-const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー', darkgray: 'ダークグレー', lightgray: 'ライトグレー', peach: 'ピーチ', clear: 'クリア'};
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー', darkgray: 'ダークグレー', lightgray: 'ライトグレー', peach: 'ピーチ', beige: 'ベージュ', yelloworange: 'イエロー・オレンジ', lightgreen: 'ライトグリーン', clear: 'クリア'};
 const bent = s => /^[LT]\d$/.test(s);   // L字・T字（数字は向き）
 const baseShape = s => bent(s) ? s[0] : s.replace(/[xz]$/, '');
 const shapeName = s => s === 'round' ? '丸1×1' : s.startsWith('slope') ? '斜め1×2' : /^[LT]\d?$/.test(s) ? s[0] + '字' : s.replace(/[xz]$/, '').replace('x', '×');
@@ -140,14 +140,14 @@ function countParts(P, list) {
 function coverPage(doc, { P, label, url, shot }) {
   const ctx = doc.newPage(), cx = PAGE_W / 2;
   font(ctx, 28);
-  text(ctx, 'ナオブロック（naoblock）ミニナノ風組立図', cx, M + 28, { align: 'center', color: '#444' });
+  text(ctx, 'ナオブロック（naoblock）3D組立図', cx, M + 28, { align: 'center', color: '#444' });
   const titleSize = fitFont(ctx, label, CW, 64, 700, 32);
   text(ctx, label, cx, M + 28 + 18 + titleSize, { align: 'center' });
   const top = M + 28 + 18 + titleSize + 36;
   const cells = P.bricks.flatMap(b => b.cells), span = i => Math.max(...cells.map(c => c[i])) - Math.min(...cells.map(c => c[i])) + 1;
   const rows = countParts(P, P.bricks);
   const facts = [
-    ['大きさ', `横 ${span(0)} × 奥行き ${span(2)} ポッチ、高さ ${P.H} 段（ミニナノのケースに入る大きさ。プレートなし）`],
+    ['大きさ', `横 ${span(0)} × 奥行き ${span(2)} ポッチ、高さ ${P.H} 段`],
     ['パーツの総数', `${P.bricks.length} 個（${rows.length} 種類）`],
     ['合計金額', `約 ${yen(rows.length * PRICE)}（税込。単色部品 ${rows.length} 袋）`],
     ['アプリ', url],
@@ -323,7 +323,7 @@ function stepPages(doc, { P, shot }) {
 }
 
 // ---- まとめ ----
-// opts: { P（PLAN）, label（「シャオランミニナノ風」）, url }。戻り値：[{ dataUrl（JPEG）, width, height }]
+// opts: { P（PLAN）, label（「シャオラン」）, url }。戻り値：[{ dataUrl（JPEG）, width, height }]
 export function renderPages(opts) {
   const shot = makeShooter(opts.P), doc = new Doc(), o = { ...opts, shot };
   coverPage(doc, o); listPages(doc, o); stepPages(doc, o);
@@ -347,7 +347,7 @@ async function fillPrintRoot(pages) {
 // ボタンをつなぐ。作ったページは使い回す
 export function wirePrint({ P, CH, pdfBtn, printBtn, status }) {
   let pages = null;
-  const opts = { P, label: `${CH.name}ミニナノ風`, url: `${location.origin}${location.pathname.replace(/[^/]*$/, '')}?plan=${CH.key}` };
+  const opts = { P, label: `${CH.name}`, url: `${location.origin}${location.pathname.replace(/[^/]*$/, '')}?plan=${CH.key}` };
   const prepare = () => (pages ??= renderPages(opts));
   const say = m => { if (status) { status.hidden = !m; status.textContent = m || ''; } };
   const busy = (btn, msg, work) => {
@@ -356,7 +356,7 @@ export function wirePrint({ P, CH, pdfBtn, printBtn, status }) {
       try { await work(); say(''); } catch (e) { console.error(e); say(`うまくいきませんでした：${e.message}`); } finally { btn.disabled = false; }
     }, 30);
   };
-  pdfBtn.onclick = () => busy(pdfBtn, '組立図の PDF を作っています…', () => downloadBlob(pagesToPdf(prepare()), `${CH.name}ミニナノ風_naoblock.pdf`));
+  pdfBtn.onclick = () => busy(pdfBtn, '組立図の PDF を作っています…', () => downloadBlob(pagesToPdf(prepare()), `${CH.name}_naoblock.pdf`));
   printBtn.onclick = () => busy(printBtn, '印刷の準備をしています…', async () => { await fillPrintRoot(prepare()); window.print(); });
   window.onbeforeprint = () => { if (!document.getElementById('print-root')?.childElementCount) fillPrintRoot(prepare()); };
   return { renderPages: () => prepare(), pagesToPdf };
