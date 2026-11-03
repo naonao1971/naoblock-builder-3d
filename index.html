@@ -70,10 +70,6 @@ summary{font-weight:700;cursor:pointer}
 .print-card button:disabled{opacity:.5}
 .start-header{display:block;width:100%;height:auto;margin:4px 0 14px;border-radius:14px;background:#13235a}
 .post-link{display:block;margin-top:12px;text-decoration:none;color:#c2185b;font-weight:700;text-align:center}.post-link small{display:block;font-weight:400;font-size:12px;color:#7a6e73;margin-top:2px}
-.upload{margin-top:20px}.upload summary{cursor:pointer;font-weight:700}
-.upload-file{display:block;margin:10px 0;padding:10px;border:2px dashed #e65f91;border-radius:10px;text-align:center;cursor:pointer;font-weight:700;color:#c2185b}.upload-file input{display:none}
-.upload textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:8px;border-radius:8px;border:1px solid #ccc}
-.upload .primary{margin-top:8px;width:100%;padding:10px;border:0;border-radius:10px;background:#e65f91;color:#fff;font:inherit;font-weight:700;cursor:pointer}#uploadMsg.err{color:#c62828}
 .legal{margin:28px 0 0;text-align:center;font-size:12px;color:#7a6e73}
 .legal p{margin:4px 0}
 .legal a{color:#c2185b;font-size:14px;font-weight:700}
@@ -146,14 +142,6 @@ summary{font-weight:700;cursor:pointer}
     <button type="button" class="archive-btn" id="archiveBtn" aria-pressed="false" hidden>🔒 LINE友だち限定アーカイブ <small id="archiveCount"></small></button>
     <div class="chars" id="chars"></div>
     <div id="archive" hidden></div>
-    <!-- ファイルから読み込む（upload.js）：AI に作ってもらった作品を 1 回だけ組む。どこにも保存しない -->
-    <details class="card upload" id="upload"><summary>📂 ファイルから読み込む（お試し）</summary>
-      <p class="note">AI に作ってもらった作品のファイルを読み込んで、その場で組めます。保存はしません（このタブを閉じたら消えます）。</p>
-      <label class="upload-file"><input type="file" id="uploadFile" accept=".json,.txt,.js,application/json,text/plain"> ファイルを選ぶ</label>
-      <textarea id="uploadText" rows="4" placeholder="または、AI の返事をここに貼り付け"></textarea>
-      <button type="button" class="primary" id="uploadGo">読み込む</button>
-      <p class="note" id="uploadMsg" role="status"></p>
-    </details>
     <a class="card post-link" href="https://post.naoblock.jp/">🧱 みんなの作品を見る<small>ナオブロック投稿サイト：投稿された3D組立図を組み立てられます</small></a>
   </section>
 
@@ -317,29 +305,6 @@ if (!CH) {   // ---- キャラ選び ----
     document.getElementById('modeGuide').focus();
   };
   charsEl.onclick = archiveEl.onclick = pick;
-  // ファイルから読み込む：読めたら、このタブに置いて、モードを選ぶ画面を出す
-  const upMsg = document.getElementById('uploadMsg');
-  const useUpload = text => {
-    try {
-      const r = NB_UPLOAD.parse(text);
-      NB_UPLOAD.keep(r);
-      const p = r.plan;
-      upMsg.textContent = `読み込めました：${r.name}（横${p.W}×奥行き${p.D}×高さ${p.H}・部品${p.bricks.length}個${r.floating ? `・下に何もない部品${r.floating}個` : ''}）`;
-      upMsg.classList.remove('err');
-      document.getElementById('modeImg').hidden = true;
-      document.getElementById('modeTitle').textContent = `${r.name}｜モードをえらぶ`;
-      document.getElementById('modeGuide').href = '?plan=upload';
-      document.getElementById('modeGame').href = 'game.html?plan=upload';
-      document.getElementById('modeHard').href = 'game.html?plan=upload&hard=1';
-      mode.hidden = false;
-      document.getElementById('modeGuide').focus();
-    } catch (err) {
-      upMsg.textContent = `読み込めませんでした：${err.message}`;
-      upMsg.classList.add('err');
-    }
-  };
-  document.getElementById('uploadFile').onchange = async e => { const f = e.target.files[0]; if (f) useUpload(await f.text()); e.target.value = ''; };
-  document.getElementById('uploadGo').onclick = () => useUpload(document.getElementById('uploadText').value);
   document.getElementById('modeClose').onclick = closeMode;
   mode.onclick = e => { if (e.target === mode) closeMode(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMode(); });
