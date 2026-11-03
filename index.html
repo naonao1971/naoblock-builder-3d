@@ -214,13 +214,24 @@ if (!CH) {   // ---- キャラ選び ----
 
   // ---- LINE友だち限定アーカイブ（LIFF でログイン → 公式LINEの友だちか確かめる。ブラウザ内だけの判定）----
   const LIFF_ID = '2012312496-59uWZzj6', LINE_ADD = 'https://line.me/R/ti/p/@134wkonl';
+  // 限定の作品の見出し：カテゴリーごと限定（line: true のカテゴリー）はカテゴリー名、1作品だけの限定は「🎁 友だち限定」
+  const lineGroups = () => {
+    const g = new Map();
+    for (const c of LINE_ONLY) {
+      const cat = ALL_CATEGORIES.find(k => k.key === c.cat);
+      const label = cat?.line ? cat.label : '🎁 友だち限定';
+      if (!g.has(label)) g.set(label, []);
+      g.get(label).push(c);
+    }
+    return [...g];
+  };
   const archiveCount = LINE_ONLY.length + ARCHIVED.reduce((n, cat) => n + CHARS.filter(c => c.cat === cat.key && !c.hidden).length, 0);
   archiveBtn.hidden = !archiveCount;
   if (LINE_ONLY.length) archiveBtn.firstChild.textContent = '🔒 LINE友だち限定 ';
   document.getElementById('archiveCount').textContent = `（${archiveCount}体）`;
   const gate = (msg, btns) => { archiveEl.innerHTML = `<div class="card archive-gate">${msg}<div>${btns}</div><p class="note">ログインで受け取るのは、友だちかどうかの確認に使う LINE の情報だけです。<a href="privacy.html">プライバシーポリシー</a></p></div>`; };
   const showArchive = () => {
-    archiveEl.innerHTML = `<div class="chars">${LINE_ONLY.length ? `<h3 class="season" style="grid-column:1/-1">🎁 友だち限定</h3>${cards(LINE_ONLY)}` : ''}${ARCHIVED.map(cat =>
+    archiveEl.innerHTML = `<div class="chars">${lineGroups().map(([label, list]) => `<h3 class="season" style="grid-column:1/-1">${label}</h3>${cards(list)}`).join('')}${ARCHIVED.map(cat =>
       `<h3 class="season" style="grid-column:1/-1">${cat.label} ${cat.until.slice(0, 4)}</h3>${cards(CHARS.filter(c => c.cat === cat.key))}`).join('')}</div>
       <p class="note" style="text-align:center;margin-top:12px">LINE でログイン中です。<button type="button" class="logout" id="liffLogout">ログアウト</button></p>`;
     document.getElementById('liffLogout').onclick = () => { liff.logout(); openArchive(); };
