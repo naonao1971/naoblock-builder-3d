@@ -69,6 +69,11 @@ summary{font-weight:700;cursor:pointer}
 .print-card button.primary{background:#e65f91;color:#fff}
 .print-card button:disabled{opacity:.5}
 .start-header{display:block;width:100%;height:auto;margin:4px 0 14px;border-radius:14px;background:#13235a}
+.post-link{display:block;margin-top:12px;text-decoration:none;color:#c2185b;font-weight:700;text-align:center}.post-link small{display:block;font-weight:400;font-size:12px;color:#7a6e73;margin-top:2px}
+.upload{margin-top:20px}.upload summary{cursor:pointer;font-weight:700}
+.upload-file{display:block;margin:10px 0;padding:10px;border:2px dashed #e65f91;border-radius:10px;text-align:center;cursor:pointer;font-weight:700;color:#c2185b}.upload-file input{display:none}
+.upload textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:8px;border-radius:8px;border:1px solid #ccc}
+.upload .primary{margin-top:8px;width:100%;padding:10px;border:0;border-radius:10px;background:#e65f91;color:#fff;font:inherit;font-weight:700;cursor:pointer}#uploadMsg.err{color:#c62828}
 .legal{margin:28px 0 0;text-align:center;font-size:12px;color:#7a6e73}
 .legal p{margin:4px 0}
 .legal a{color:#c2185b;font-size:14px;font-weight:700}
@@ -102,6 +107,7 @@ summary{font-weight:700;cursor:pointer}
 .mode-btn span{display:block;font-size:12px;margin-top:2px;opacity:.95}
 </style>
 <link rel="stylesheet" href="print.css" media="print">
+<script src="upload.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script>
   // ?plan=nemu で plan_nemu.js を読む。plan なしはキャラ選び
@@ -120,8 +126,15 @@ summary{font-weight:700;cursor:pointer}
     {key: 'izuna', cat: 'ninja', name: 'イズナ', file: 'plan_izuna'}, {key: 'sekishusai', cat: 'ninja', name: '石舟斎', file: 'plan_sekishusai'}, {key: 'sasagane', cat: 'ninja', name: 'ササガネ', file: 'plan_sasagane'},
     {key: 'qrcube', cat: 'nouns', name: 'nanoQRキューブ（お試し）', file: 'plan_qrcube', hidden: true}];   // hidden：一覧には出さず、URL直接でだけ開ける（実物で確かめ中）
   // line: true を付けた作品は、タブには出さず「LINE友だち限定」の中にだけ出す（カテゴリーに付ければ、その中の全作品）
-  const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan'));
-  if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
+  // ?plan=upload：このタブで読み込んだファイルの作品（タブを閉じたら消える）／?post=12：投稿サイトの作品（どちらも upload.js）
+  const Q = new URLSearchParams(location.search);
+  const UP = Q.get('plan') === 'upload' && NB_UPLOAD.load();
+  const POST_ID = /^[1-9][0-9]{0,6}$/.test(Q.get('post') || '') ? Number(Q.get('post')) : 0;
+  if (UP) window.PLAN = UP.plan;
+  const CH = UP ? {key: 'upload', name: UP.name, q: 'plan=upload'} : POST_ID ? {key: `post${POST_ID}`, name: '投稿作品', q: `post=${POST_ID}`} : CHARS.find(c => c.key === Q.get('plan'));
+  if (CH && !CH.q) CH.q = `plan=${CH.key}`;   // この作品を開き直す URL の ? のあと
+  if (POST_ID) NB_UPLOAD.writePosted(POST_ID, CH);
+  else if (CH && !UP) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
 </head><body>
 <header><h1 id="h1">組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
@@ -133,6 +146,15 @@ summary{font-weight:700;cursor:pointer}
     <button type="button" class="archive-btn" id="archiveBtn" aria-pressed="false" hidden>🔒 LINE友だち限定アーカイブ <small id="archiveCount"></small></button>
     <div class="chars" id="chars"></div>
     <div id="archive" hidden></div>
+    <!-- ファイルから読み込む（upload.js）：AI に作ってもらった作品を 1 回だけ組む。どこにも保存しない -->
+    <details class="card upload" id="upload"><summary>📂 ファイルから読み込む（お試し）</summary>
+      <p class="note">AI に作ってもらった作品のファイルを読み込んで、その場で組めます。保存はしません（このタブを閉じたら消えます）。</p>
+      <label class="upload-file"><input type="file" id="uploadFile" accept=".json,.txt,.js,application/json,text/plain"> ファイルを選ぶ</label>
+      <textarea id="uploadText" rows="4" placeholder="または、AI の返事をここに貼り付け"></textarea>
+      <button type="button" class="primary" id="uploadGo">読み込む</button>
+      <p class="note" id="uploadMsg" role="status"></p>
+    </details>
+    <a class="card post-link" href="https://post.naoblock.jp/">🧱 みんなの作品を見る<small>ナオブロック投稿サイト：投稿された3D組立図を組み立てられます</small></a>
   </section>
 
   <section id="guide">
@@ -163,6 +185,10 @@ summary{font-weight:700;cursor:pointer}
     <div class="card print-card"><b>組立図（A4）</b>
       <div class="btns"><button id="savePdf" class="primary">PDF で保存</button><button id="printGuide">プリンターで印刷</button></div>
       <p class="note">表紙・部品リスト・買い物リスト・1段ずつの組立図です。PDF もプリンターも同じ中身です。</p><p class="note" id="printStatus" hidden></p></div>
+    <!-- 読み込んだ作品（?plan=upload）は保存と投稿、投稿サイトの作品（?post=12）は投稿サイトへ戻るリンク -->
+    <div class="card print-card" id="fileCard" hidden><b id="fileTitle">作品ファイル</b>
+      <div class="btns"><button id="saveFile" class="primary">💾 ファイルに保存</button><button id="toPost">📤 投稿サイトに載せる</button></div>
+      <p class="note" id="fileNote"></p></div>
   </section>
   <footer class="legal">
     <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
@@ -282,6 +308,7 @@ if (!CH) {   // ---- キャラ選び ----
     const c = CHARS.find(c => c.key === e.target.closest('button')?.dataset.key);
     if (!c) return;
     document.getElementById('modeImg').src = `thumb_${c.key}.png`;
+    document.getElementById('modeImg').hidden = false;
     document.getElementById('modeTitle').textContent = `${c.name}｜モードをえらぶ`;
     document.getElementById('modeGuide').href = `?plan=${c.key}`;
     document.getElementById('modeGame').href = `game.html?plan=${c.key}`;
@@ -290,6 +317,29 @@ if (!CH) {   // ---- キャラ選び ----
     document.getElementById('modeGuide').focus();
   };
   charsEl.onclick = archiveEl.onclick = pick;
+  // ファイルから読み込む：読めたら、このタブに置いて、モードを選ぶ画面を出す
+  const upMsg = document.getElementById('uploadMsg');
+  const useUpload = text => {
+    try {
+      const r = NB_UPLOAD.parse(text);
+      NB_UPLOAD.keep(r);
+      const p = r.plan;
+      upMsg.textContent = `読み込めました：${r.name}（横${p.W}×奥行き${p.D}×高さ${p.H}・部品${p.bricks.length}個${r.floating ? `・下に何もない部品${r.floating}個` : ''}）`;
+      upMsg.classList.remove('err');
+      document.getElementById('modeImg').hidden = true;
+      document.getElementById('modeTitle').textContent = `${r.name}｜モードをえらぶ`;
+      document.getElementById('modeGuide').href = '?plan=upload';
+      document.getElementById('modeGame').href = 'game.html?plan=upload';
+      document.getElementById('modeHard').href = 'game.html?plan=upload&hard=1';
+      mode.hidden = false;
+      document.getElementById('modeGuide').focus();
+    } catch (err) {
+      upMsg.textContent = `読み込めませんでした：${err.message}`;
+      upMsg.classList.add('err');
+    }
+  };
+  document.getElementById('uploadFile').onchange = async e => { const f = e.target.files[0]; if (f) useUpload(await f.text()); e.target.value = ''; };
+  document.getElementById('uploadGo').onclick = () => useUpload(document.getElementById('uploadText').value);
   document.getElementById('modeClose').onclick = closeMode;
   mode.onclick = e => { if (e.target === mode) closeMode(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMode(); });
@@ -304,6 +354,23 @@ function guide() {
 
 const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
 window.__print = wirePrint({P, CH, pdfBtn: document.getElementById('savePdf'), printBtn: document.getElementById('printGuide'), status: document.getElementById('printStatus')});
+// 作品ファイル：読み込んだ作品は手元に保存（バックアップ）して投稿サイトへ。投稿サイトの作品は、投稿サイトの作品ページへ戻る
+if (CH.key === 'upload' || CH.q.startsWith('post=')) {
+  const site = NB_UPLOAD.POST.SITE, posted = CH.key !== 'upload';
+  document.getElementById('fileCard').hidden = false;
+  const save = document.getElementById('saveFile'), toPost = document.getElementById('toPost');
+  if (posted) {
+    save.hidden = true;
+    document.getElementById('fileTitle').textContent = '投稿サイトの作品';
+    toPost.textContent = '🧱 投稿サイトで見る'; toPost.classList.add('primary');
+    toPost.onclick = () => { location.href = `${site}#work-${CH.q.slice(5)}`; };
+    document.getElementById('fileNote').textContent = `${CH.author ? `${CH.author}さんの作品です。` : ''}ナオブロック投稿サイトに投稿された作品です。`;
+  } else {
+    save.onclick = () => NB_UPLOAD.save(CH.name, P);
+    toPost.onclick = () => { location.href = `${site}#post`; };
+    document.getElementById('fileNote').textContent = 'このタブを閉じると消えます。気に入ったら「ファイルに保存」しておくと、あとで読み込んだり、投稿サイトに載せたりできます（パーツ200個まで）。';
+  }
+}
 const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー', darkgray: 'ダークグレー', lightgray: 'ライトグレー', peach: 'ピーチ', beige: 'ベージュ', yelloworange: 'イエロー・オレンジ', lightgreen: 'ライトグリーン', clear: 'クリア'};
 const col = c => PAL[c] ? c : 'black';   // 見えない中身はブラックで組む
 const rgb = c => PAL[col(c)];
@@ -487,7 +554,7 @@ function show(i, quiet) {   // quiet：自動で組み立てている間（カ�
   drawPiece(s.b);
   if (quiet) return;
   auto = true; autoBtn.classList.add('on'); aim(s);
-  history.replaceState(null, '', `?plan=${CH.key}&step=${cur + 1}`);
+  history.replaceState(null, '', `?${CH.q}&step=${cur + 1}`);
 }
 function finish() {
   finished = true;
