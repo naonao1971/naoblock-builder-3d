@@ -166,7 +166,7 @@
   // ---- 投稿サイト（post.naoblock.jp）の作品：?post=12 ----
   // GAS から JSONP で読む（<script> で読むので、組立ガイドのほかの部分より先に作品がそろう）
   const POST = {
-    GAS_URL: '',   // 投稿サイトの GAS（…/exec）。投稿サイトの config.js と同じ URL
+    GAS_URL: 'https://script.google.com/macros/s/AKfycbxvDlnjV5NWtQr2zzgDBxqReNJYN4pzWH5RJsQ3hfi16rPLWJH4ZLaInbDdEKKLOOAI2w/exec',   // 投稿サイトの GAS（…/exec）。投稿サイトの config.js と同じ URL
     SITE: 'https://post.naoblock.jp/',
   };
   function writePosted(id, CH) {
