@@ -347,7 +347,7 @@ async function fillPrintRoot(pages) {
 // ボタンをつなぐ。作ったページは使い回す
 export function wirePrint({ P, CH, pdfBtn, printBtn, status }) {
   let pages = null;
-  const opts = { P, label: `${CH.name}`, url: `${location.origin}${location.pathname.replace(/[^/]*$/, '')}?plan=${CH.key}` };
+  const opts = { P, label: `${CH.name}`, url: `${location.origin}${location.pathname.replace(/[^/]*$/, '')}${CH.key === 'upload' ? '' : `?${CH.q}`}` };   // 読み込んだ作品は、ほかの人が開けないのでトップへ
   const prepare = () => (pages ??= renderPages(opts));
   const say = m => { if (status) { status.hidden = !m; status.textContent = m || ''; } };
   const busy = (btn, msg, work) => {

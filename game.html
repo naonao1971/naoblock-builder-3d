@@ -62,6 +62,7 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
 .legal a{color:#c2185b;font-size:14px;font-weight:700}
 </style>
 <link rel="stylesheet" href="print.css" media="print">
+<script src="upload.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script>
   const CHARS = [{key: 'sakuya', cat: 'kitan', name: '咲耶', file: 'plan'}, {key: 'nemu', cat: 'kitan', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', cat: 'kitan', name: 'シャオラン', file: 'plan_xiaolan'},
@@ -78,8 +79,15 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
     {key: 'shion', cat: 'ninja', name: '紫苑', file: 'plan_shion'}, {key: 'seori', cat: 'ninja', name: '瀬織', file: 'plan_seori'}, {key: 'quon', cat: 'ninja', name: '久遠', file: 'plan_quon'}, {key: 'magoichi', cat: 'ninja', name: '孫市', file: 'plan_magoichi'}, {key: 'ibuki', cat: 'ninja', name: 'イブキ', file: 'plan_ibuki'}, {key: 'oen', cat: 'ninja', name: 'おえん', file: 'plan_oen'},
     {key: 'izuna', cat: 'ninja', name: 'イズナ', file: 'plan_izuna'}, {key: 'sekishusai', cat: 'ninja', name: '石舟斎', file: 'plan_sekishusai'}, {key: 'sasagane', cat: 'ninja', name: 'ササガネ', file: 'plan_sasagane'},
     ];
-  const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan')) || CHARS[0];
-  document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
+  // ?plan=upload：このタブで読み込んだファイルの作品（タブを閉じたら消える）／?post=12：投稿サイトの作品（どちらも upload.js）
+  const Q = new URLSearchParams(location.search);
+  const UP = Q.get('plan') === 'upload' && NB_UPLOAD.load();
+  const POST_ID = /^[1-9][0-9]{0,6}$/.test(Q.get('post') || '') ? Number(Q.get('post')) : 0;
+  if (UP) window.PLAN = UP.plan;
+  const CH = UP ? {key: 'upload', name: UP.name, q: 'plan=upload'} : POST_ID ? {key: `post${POST_ID}`, name: '投稿作品', q: `post=${POST_ID}`} : CHARS.find(c => c.key === Q.get('plan')) || CHARS[0];
+  if (CH && !CH.q) CH.q = `plan=${CH.key}`;   // この作品を開き直す URL の ? のあと
+  if (POST_ID) NB_UPLOAD.writePosted(POST_ID, CH);
+  else if (CH && !UP) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
 </head><body>
 <header><h1 id="h1">ゲーム</h1><a href="./">キャラを選ぶ</a></header>
@@ -316,12 +324,13 @@ const fmt = ms => (ms / 1000).toFixed(1);
 function overlay(html) { $('overCard').innerHTML = html; $('over').style.display = 'flex'; }
 function gameOver() {
   over = true; bonusHearts.stop();
-  overlay(`<h2>ざんねん…</h2><p>${layer + 1}段目で♥がなくなりました</p><button onclick="location.reload()">もう一度</button><a class="sub" href="./?plan=${CH.key}">組立ガイドで確かめる</a>`);
+  overlay(`<h2>ざんねん…</h2><p>${layer + 1}段目で♥がなくなりました</p><button onclick="location.reload()">もう一度</button><a class="sub" href="./?${CH.q}">組立ガイドで確かめる</a>`);
 }
 function clear() {
   over = true; tEnd = performance.now(); const ms = tEnd - t0;
-  const prev = +localStorage.getItem(bestKey()) || 0, best = !prev || ms < prev;
-  if (best) localStorage.setItem(bestKey(), Math.round(ms));
+  const store = UP ? sessionStorage : localStorage;   // 読み込んだ作品の記録は残さない（タブを閉じたら消える）
+  const prev = +store.getItem(bestKey()) || 0, best = !prev || ms < prev;
+  if (best) store.setItem(bestKey(), Math.round(ms));
   for (const o of obj.values()) o.ghost.visible = false;
   spin = true; ctl.target.set(mx, H * A / 2, mz);
   sound.clear(); const [cx, cy] = center(box); confetti(cx, cy, 90, 1.3); setTimeout(() => { confetti(innerWidth * .2, innerHeight * .4, 50, 1.1); confetti(innerWidth * .8, innerHeight * .4, 50, 1.1); }, 400);
@@ -352,7 +361,7 @@ async function share(img, ms) {
   try {
     const file = new File([await (await fetch(img)).blob()], 'mininano.png', {type: 'image/png'});
     if (navigator.canShare?.({files: [file]})) return await navigator.share({files: [file], text});
-    if (navigator.share) return await navigator.share({text, url: location.href});
+    if (navigator.share) return await navigator.share({text, url: UP ? new URL('./', location.href).href : location.href});   // 読み込んだ作品は、ほかの人が開けないのでトップへ
   } catch (e) { if (e.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = img; a.download = 'mininano.png'; a.click();
 }
