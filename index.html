@@ -1,11 +1,11 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ミニナノ風 組立ガイド</title>
+<title>組立ガイド</title>
 <link rel="icon" href="apple-touch-icon.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
 <!-- シェアしたときのカード。ogp.png を差し替えたら ?v= の番号も変える（X・Discord・LINE は URL ごとに古い絵を覚えている） -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="naoblock-builder-3d｜ミニナノ風の組立図">
+<meta property="og:title" content="naoblock-builder-3d｜ナノブロック3D組立図">
 <meta property="og:description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
 <meta property="og:image" content="https://builder-3d.naoblock.jp/ogp.png?v=1">
 <meta property="og:url" content="https://builder-3d.naoblock.jp/">
@@ -105,28 +105,34 @@ summary{font-weight:700;cursor:pointer}
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script>
   // ?plan=nemu で plan_nemu.js を読む。plan なしはキャラ選び
-  const CHARS = [{key: 'sakuya', cat: 'ninja', name: '咲耶', file: 'plan'}, {key: 'nemu', cat: 'ninja', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', cat: 'ninja', name: 'シャオラン', file: 'plan_xiaolan'},
+  const CHARS = [{key: 'sakuya', cat: 'kitan', name: '咲耶', file: 'plan'}, {key: 'nemu', cat: 'kitan', name: 'ネム', file: 'plan_nemu'}, {key: 'xiaolan', cat: 'kitan', name: 'シャオラン', file: 'plan_xiaolan'},
     {key: 'ghost', cat: 'halloween', name: 'おばけ', file: 'plan_ghost'}, {key: 'pumpkin', cat: 'halloween', name: 'かぼちゃ', file: 'plan_pumpkin'}, {key: 'bat', cat: 'halloween', name: 'コウモリ', file: 'plan_bat'}, {key: 'cat', cat: 'halloween', name: '黒ネコ', file: 'plan_cat'}, {key: 'skull', cat: 'halloween', name: 'ほねほねマン', file: 'plan_skull'}, {key: 'frank', cat: 'halloween', name: 'フランケン', file: 'plan_frank'}, {key: 'witch', cat: 'halloween', name: '魔女', file: 'plan_witch'}, {key: 'dracula', cat: 'halloween', name: 'ドラキュラ', file: 'plan_dracula'},
     {key: 'mitama', cat: 'cnp', name: 'ミタマ', file: 'plan_mitama'}, {key: 'leelee', cat: 'cnp', name: 'リーリー', file: 'plan_leelee'}, {key: 'yama', cat: 'cnp', name: 'ヤーマ', file: 'plan_yama'}, {key: 'orochi', cat: 'cnp', name: 'オロチ', file: 'plan_orochi'}, {key: 'narukami', cat: 'cnp', name: 'ナルカミ', file: 'plan_narukami'}, {key: 'luna', cat: 'cnp', name: 'ルナ', file: 'plan_luna'}, {key: 'makami', cat: 'cnp', name: 'マカミ', file: 'plan_makami'}, {key: 'towa', cat: 'cnp', name: 'トワ', file: 'plan_towa'}, {key: 'emma', cat: 'cnp', name: 'エマ', file: 'plan_emma'}, {key: 'tart', cat: 'cnp', name: 'タルト', file: 'plan_tart'}, {key: 'setsuna', cat: 'cnp', name: 'セツナ', file: 'plan_setsuna'},
     {key: 'noun0', cat: 'nouns', name: 'Noun 0', file: 'plan_noun0'},
     {key: 'noun1', cat: 'nouns', name: 'Noun 1', file: 'plan_noun1'},
-    // ドット絵スタンドのお試し（2D版 40×40 の絵を立てた形。支えの柱はクリア）。一覧には出さず ?plan=jin だけ
-    {key: 'jin', cat: 'ninja', name: '刃（ドット絵スタンド）', file: 'plan_jin', hidden: true}, {key: 'qrcube', cat: 'nouns', name: 'nanoQRキューブ（お試し）', file: 'plan_qrcube', hidden: true}];   // hidden：一覧には出さず、URL直接でだけ開ける（実物で確かめ中）
+    // クリプト忍者：2D版 40×40 のドット絵を立てたスタンド（支えの柱はクリア）。手作り版と同じ名前のものは -dot
+    {key: 'jin', cat: 'ninja', name: '刃', file: 'plan_jin'}, {key: 'sakuya-dot', cat: 'ninja', name: '咲耶', file: 'plan_sakuya-dot'}, {key: 'kohaku', cat: 'ninja', name: '狐白', file: 'plan_kohaku'}, {key: 'shiba', cat: 'ninja', name: '柴', file: 'plan_shiba'}, {key: 'kanaoni', cat: 'ninja', name: '金鬼', file: 'plan_kanaoni'}, {key: 'oto-dot', cat: 'ninja', name: '於兎', file: 'plan_oto-dot'},
+    {key: 'rotten', cat: 'ninja', name: '呂屯', file: 'plan_rotten'}, {key: 'nagisa', cat: 'ninja', name: '凪紗', file: 'plan_nagisa'}, {key: 'anne', cat: 'ninja', name: '餡音', file: 'plan_anne'}, {key: 'dan', cat: 'ninja', name: '断', file: 'plan_dan'}, {key: 'hinano-joh', cat: 'ninja', name: '雛之丞', file: 'plan_hinano-joh'}, {key: 'torika', cat: 'ninja', name: '酉花', file: 'plan_torika'},
+    {key: 'atoza', cat: 'ninja', name: 'アトザ', file: 'plan_atoza'}, {key: 'hayate', cat: 'ninja', name: 'ハヤテ', file: 'plan_hayate'}, {key: 'uka', cat: 'ninja', name: '宇迦', file: 'plan_uka'}, {key: 'ganzi', cat: 'ninja', name: '岩爺', file: 'plan_ganzi'}, {key: 'yui', cat: 'ninja', name: '結', file: 'plan_yui'}, {key: 'futa', cat: 'ninja', name: '風太', file: 'plan_futa'},
+    {key: 'rei', cat: 'ninja', name: '令', file: 'plan_rei'}, {key: 'sattva', cat: 'ninja', name: 'サットヴァ', file: 'plan_sattva'}, {key: 'nekomata', cat: 'ninja', name: '猫又', file: 'plan_nekomata'}, {key: 'janome', cat: 'ninja', name: '蛇ノ目', file: 'plan_janome'}, {key: 'benten', cat: 'ninja', name: '弁天', file: 'plan_benten'}, {key: 'karma', cat: 'ninja', name: 'カルマ', file: 'plan_karma'},
+    {key: 'ichiya', cat: 'ninja', name: 'イチヤ', file: 'plan_ichiya'}, {key: 'nemu-dot', cat: 'ninja', name: 'ネム', file: 'plan_nemu-dot'}, {key: 'karura', cat: 'ninja', name: 'カルラ', file: 'plan_karura'}, {key: 'xiaolan-dot', cat: 'ninja', name: 'シャオラン', file: 'plan_xiaolan-dot'}, {key: 'aum', cat: 'ninja', name: 'アウン', file: 'plan_aum'}, {key: 'konga', cat: 'ninja', name: 'コンガ', file: 'plan_konga'},
+    {key: 'shion', cat: 'ninja', name: '紫苑', file: 'plan_shion'}, {key: 'seori', cat: 'ninja', name: '瀬織', file: 'plan_seori'}, {key: 'quon', cat: 'ninja', name: '久遠', file: 'plan_quon'}, {key: 'magoichi', cat: 'ninja', name: '孫市', file: 'plan_magoichi'}, {key: 'ibuki', cat: 'ninja', name: 'イブキ', file: 'plan_ibuki'}, {key: 'oen', cat: 'ninja', name: 'おえん', file: 'plan_oen'},
+    {key: 'izuna', cat: 'ninja', name: 'イズナ', file: 'plan_izuna'}, {key: 'sekishusai', cat: 'ninja', name: '石舟斎', file: 'plan_sekishusai'}, {key: 'sasagane', cat: 'ninja', name: 'ササガネ', file: 'plan_sasagane'},
+    {key: 'qrcube', cat: 'nouns', name: 'nanoQRキューブ（お試し）', file: 'plan_qrcube', hidden: true}];   // hidden：一覧には出さず、URL直接でだけ開ける（実物で確かめ中）
   // line: true を付けた作品は、タブには出さず「LINE友だち限定」の中にだけ出す（カテゴリーに付ければ、その中の全作品）
   const CH = CHARS.find(c => c.key === new URLSearchParams(location.search).get('plan'));
   if (CH) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
 </head><body>
-<header><h1 id="h1">ミニナノ風 組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
+<header><h1 id="h1">組立ガイド</h1><a id="back" href="./" style="display:none">キャラを選ぶ</a></header>
 <main>
   <section id="select">
-    <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がるミニナノ風を見ている絵">
+    <img class="start-header" src="header.jpg" width="1200" height="626" alt="naoblock-builder-3d のロゴと、なおなおとチビ咲耶が、スマホの上で1段ずつ組み上がる作品を見ている絵">
     <h2>どの子を組みますか？</h2>
     <div class="tabs" id="tabs" role="tablist" aria-label="キャラの種類"></div>
     <button type="button" class="archive-btn" id="archiveBtn" aria-pressed="false" hidden>🔒 LINE友だち限定アーカイブ <small id="archiveCount"></small></button>
     <div class="chars" id="chars"></div>
     <div id="archive" hidden></div>
-    <p class="note" style="text-align:center">ミニナノのケース（プレートなし）に入る大きさです。</p>
   </section>
 
   <section id="guide">
@@ -187,7 +193,7 @@ if (!CH) {   // ---- キャラ選び ----
   // until つきは期間限定（日本時間でその日が終わったら出さない。?plan= の直リンクからは期間後も組める）
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   // 期間が終わったカテゴリーは、タブから消えて「LINE友だち限定アーカイブ」に移る（新しい季節が上）
-  const ALL_CATEGORIES = [{key: 'halloween', label: '🎃ハロウィン', until: '2026-10-31'}, {key: 'nouns', label: 'Nouns'}, {key: 'ninja', label: 'クリプト忍者'}, {key: 'cnp', label: 'CNP'}, {key: 'qr', label: 'nanoQR'}]
+  const ALL_CATEGORIES = [{key: 'halloween', label: '🎃ハロウィン', until: '2026-10-31'}, {key: 'nouns', label: 'Nouns'}, {key: 'ninja', label: 'クリプト忍者'}, {key: 'cnp', label: 'CNP'}, {key: 'kitan', label: '月蝕綺譚', line: true}, {key: 'qr', label: 'nanoQR'}]
     .filter(cat => CHARS.some(c => c.cat === cat.key));
   const ARCHIVED = ALL_CATEGORIES.filter(cat => cat.until && today > cat.until).sort((a, b) => b.until.localeCompare(a.until));
   const isLine = c => c.line || ALL_CATEGORIES.find(cat => cat.key === c.cat)?.line;
@@ -287,7 +293,7 @@ function guide() {
 
 const P = PLAN, {H, W, D, aspect: A, palette: PAL} = P;
 window.__print = wirePrint({P, CH, pdfBtn: document.getElementById('savePdf'), printBtn: document.getElementById('printGuide'), status: document.getElementById('printStatus')});
-const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー', darkgray: 'ダークグレー', lightgray: 'ライトグレー', peach: 'ピーチ', clear: 'クリア'};
+const JNAME = {black: 'ブラック', red: 'レッド', pink: 'ピンク', skin: 'ベージュ', white: 'ホワイト', yellow: 'イエロー', brown: 'ブラウン', gray: 'グレー', purple: 'パープル', orange: 'オレンジ', green: 'グリーン', blue: 'ブルー', navy: 'ネイビー', lightblue: 'ライトブルー', darkgray: 'ダークグレー', lightgray: 'ライトグレー', peach: 'ピーチ', beige: 'ベージュ', yelloworange: 'イエロー・オレンジ', lightgreen: 'ライトグリーン', clear: 'クリア'};
 const col = c => PAL[c] ? c : 'black';   // 見えない中身はブラックで組む
 const rgb = c => PAL[col(c)];
 // クリアのパーツは半透明（ドット絵スタンドの支えの柱）
@@ -308,7 +314,7 @@ function outline(cells, d = 0) {
     const [n1, n2] = [n(a, q), n(q, b)]; return [q[0] + d * (n1[0] + n2[0]), q[1] + d * (n1[1] + n2[1])]; });
 }
 const shopShape = s => s === 'round' ? '1×1R' : s.startsWith('slope') ? 'スロープ 1×2' : shapeName(s);
-document.title = `${CH.name}ミニナノ風 組立ガイド`;
+document.title = `${CH.name} 組立ガイド`;
 document.getElementById('h1').textContent = document.title;
 document.getElementById('select').style.display = 'none';
 document.getElementById('guide').style.display = 'block';
