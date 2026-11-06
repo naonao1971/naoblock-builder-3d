@@ -48,7 +48,7 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
 #layerNo.pop{display:inline-block;animation:bump .4s}
 @keyframes bump{40%{transform:scale(1.35);color:#e65f91}}
 .over{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-.over .card{max-width:360px;width:100%;text-align:center;padding:18px}
+.over .card{max-width:360px;width:100%;max-height:100%;overflow-y:auto;text-align:center;padding:18px}
 .over h2{margin:4px 0 8px;font-size:26px;color:#e65f91}
 .over p{margin:6px 0}
 .over img{width:100%;border-radius:12px;margin:6px 0}
@@ -60,6 +60,11 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
 .legal{margin:28px 0 0;text-align:center;font-size:12px;color:#7a6e73}
 .legal p{margin:4px 0}
 .legal a{color:#c2185b;font-size:14px;font-weight:700}
+/* 完成のときの公式 LINE の案内（作品の直リンクから来た人は、一覧の「LINE友だち限定」ボタンを通らない） */
+.line-invite{margin:14px 0 0;padding:12px;border-radius:12px;background:#eafaf0;text-align:center}
+.line-invite p{margin:0 0 8px;font-size:14px;font-weight:700;color:#3c3237}
+.line-invite .line-invite-btn{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0;padding:8px 14px;border-radius:12px;background:#06c755;color:#fff;font-size:16px;font-weight:700;text-decoration:none}
+.line-invite .to-archive{display:inline-block;width:auto;margin:8px 0 0;padding:0;background:none;font-size:13px;font-weight:700;color:#04a346}
 </style>
 <link rel="stylesheet" href="print.css" media="print">
 <script src="upload.js"></script>
@@ -338,7 +343,8 @@ function clear() {
     const img = shareImage(ms);
     overlay(`<h2>完成！🎉</h2><img src="${img}" alt=""><p><b style="font-size:22px">${fmt(ms)}秒</b>　${'♥'.repeat(hearts)}${'♡'.repeat(3 - hearts)}</p>
       <p style="font-size:13px;color:#7a6e73">${best ? 'じこベスト更新！' : `じこベスト ${fmt(prev)}秒`}（${guideName()}）</p>
-      <button id="shareBtn">シェアする</button><div class="row"><button class="sub" id="savePdf">組立図 PDF</button><button class="sub" id="printGuide">組立図を印刷</button></div><p id="printStatus" style="font-size:13px;color:#7a6e73" hidden></p><button class="sub" onclick="location.reload()">もう一度</button><a class="sub" href="./">キャラを選ぶ</a>`);
+      <button id="shareBtn">シェアする</button><div class="row"><button class="sub" id="savePdf">組立図 PDF</button><button class="sub" id="printGuide">組立図を印刷</button></div><p id="printStatus" style="font-size:13px;color:#7a6e73" hidden></p><button class="sub" onclick="location.reload()">もう一度</button><a class="sub" href="./">キャラを選ぶ</a>
+      <div class="line-invite"><p>🎁 公式LINE「ナオブロックラボ」の友だちになると、限定の作品でも遊べます</p><a class="line-invite-btn" href="https://line.me/R/ti/p/@134wkonl" target="_blank" rel="noopener">友だち追加する</a><a class="to-archive" href="./#archive">友だちの人は、限定の作品へ →</a></div>`);
     $('shareBtn').onclick = () => share(img, ms);
     wirePrint({P, CH, pdfBtn: $('savePdf'), printBtn: $('printGuide'), status: $('printStatus')});
   }, 1200);
