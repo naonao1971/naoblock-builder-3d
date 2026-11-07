@@ -96,6 +96,20 @@ main{max-width:980px;margin:0 auto;padding:4px 12px 150px}
   else if (CH && !UP) document.write(`<script src="${CH.file}.js?v=${Date.now()}"><\/script>`);
 </script>
 </head><body>
+<script>
+// 3D版は import map（iOS 16.4〜）を使うので、古い iPhone では動かない。そのときは案内を出して 2D 版へ（なおなお判断 2026-11-08：3D版は iOS 16.4 以上でいい）
+// ここは古いブラウザでも読めるように、古い書き方だけで書く
+(function () {
+  var ok = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap');
+  if (ok) return;
+  var d = document.createElement('div');
+  d.setAttribute('role', 'alert');
+  d.style.cssText = 'background:#fff3cd;color:#3c3237;border:2px solid #f0c040;border-radius:12px;padding:12px 14px;margin:10px;font-size:15px;line-height:1.7';
+  d.innerHTML = '<b>この端末では3D版が動きません</b><br>iPhone なら iOS 16.4 以上で遊べます（設定 → 一般 → ソフトウェアアップデート）。<br>' +
+    '<a href="https://builder.naoblock.com/" style="display:inline-block;margin-top:8px;padding:8px 14px;border-radius:99px;background:#e91e63;color:#fff;font-weight:bold;text-decoration:none">2D版で遊ぶ</a>';
+  document.body.insertBefore(d, document.body.firstChild);
+})();
+</script>
 <header><h1 id="h1">ゲーム</h1><a href="./">キャラを選ぶ</a></header>
 <main>
   <div class="status"><b id="layerNo"></b><span id="layerSub" style="font-size:13px;color:#7a6e73"></span><span id="hearts"></span><span id="timer">0.0</span></div>
