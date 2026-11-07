@@ -7,8 +7,9 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="naoblock-builder-3d｜ナノブロック3D組立図">
 <meta property="og:description" content="キャラを選んで、ナノブロックの立体を1段ずつ組み立て。組立図はPDFで保存・印刷できます。">
-<meta property="og:image" content="https://builder-3d.naoblock.jp/ogp.png?v=1">
-<meta property="og:url" content="https://builder-3d.naoblock.jp/">
+<meta property="og:image" content="https://builder-3d.naoblock.com/ogp.png?v=1">
+<meta property="og:url" content="https://builder-3d.naoblock.com/">
+<link rel="canonical" href="https://builder-3d.naoblock.com/">
 <meta name="twitter:card" content="summary_large_image">
 <style>
 *{box-sizing:border-box}
@@ -148,7 +149,7 @@ summary{font-weight:700;cursor:pointer}
     <button type="button" class="archive-btn" id="archiveBtn" aria-pressed="false" hidden>🔒 LINE友だち限定アーカイブ <small id="archiveCount"></small></button>
     <div class="chars" id="chars"></div>
     <div id="archive" hidden></div>
-    <a class="card post-link" href="https://post.naoblock.jp/">🧱 みんなの作品を見る<small>ナオブロック投稿サイト：投稿された3D組立図を組み立てられます</small></a>
+    <a class="card post-link" href="https://post.naoblock.com/">🧱 みんなの作品を見る<small>ナオブロック投稿サイト：投稿された3D組立図を組み立てられます</small></a>
   </section>
 
   <section id="guide">
@@ -186,7 +187,7 @@ summary{font-weight:700;cursor:pointer}
   </section>
   <footer class="legal">
     <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
-    <p><a href="https://naoblock.jp/">naoblock.jp へ</a></p>
+    <p><a href="https://naoblock.com/">naoblock.com へ</a></p>
     <p><a href="privacy.html" style="font-size:12px;font-weight:400">プライバシーポリシー</a></p>
   </footer>
 </main>
@@ -209,7 +210,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {wirePrint} from './print3d.js';
 
 if (!CH) {   // ---- キャラ選び ----
-  // カテゴリーのタブ（2D版 builder.naoblock.jp と同じ並び）。キャラが 1 体もいないタブは出さない
+  // カテゴリーのタブ（2D版 builder.naoblock.com と同じ並び）。キャラが 1 体もいないタブは出さない
   // until つきは期間限定（日本時間でその日が終わったら出さない。?plan= の直リンクからは期間後も組める）
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   // 期間が終わったカテゴリーは、タブから消えて「LINE友だち限定アーカイブ」に移る（新しい季節が上）
