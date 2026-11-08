@@ -102,6 +102,13 @@ summary{font-weight:700;cursor:pointer}
 .mode-btn.h{background:#3c3237}
 .mode-btn strong{display:block;font-size:17px}
 .mode-btn span{display:block;font-size:12px;margin-top:2px;opacity:.95}
+/* 完成のときの投稿サイトの案内（にんケット2027改善指示書・優先度2。色は投稿サイトに合わせる） */
+.post-invite{margin:14px 0 0;padding:12px;border-radius:12px;background:#fdeef3;text-align:center}
+.post-invite p{margin:0 0 6px;font-size:14px;font-weight:700;color:#3c3237;word-break:auto-phrase}
+.post-invite p.lead{margin:0 0 8px;font-size:13px;font-weight:400}
+.post-invite .post-invite-btn{display:flex;align-items:center;justify-content:center;width:auto;min-height:44px;margin:0 0 8px;padding:8px 14px;border:0;border-radius:12px;background:#c2185b;color:#fff;font-size:16px;font-weight:700;text-decoration:none}
+.post-invite .post-invite-btn.ghost{margin:0;background:#fff;color:#c2185b;border:2px solid #c2185b}
+.post-invite.mini{padding:10px 8px}.post-invite.mini p{font-size:13px}.post-invite.mini p.lead{display:none}.post-invite.mini .post-invite-btn{min-height:40px;padding:6px 6px;font-size:14px}
 /* 完成のときの公式 LINE の案内（作品の直リンクから来た人は、一覧の「LINE友だち限定」ボタンを通らない） */
 .line-invite{margin:14px 0 0;padding:12px;border-radius:12px;background:#eafaf0;text-align:center}
 .line-invite p{margin:0 0 8px;font-size:14px;font-weight:700;color:#3c3237}
@@ -178,7 +185,7 @@ summary{font-weight:700;cursor:pointer}
           <div id="pieceName"></div>
           <canvas id="pieceIcon" width="200" height="120"></canvas>
           <div id="tip"></div>
-          <div id="done"><b>完成！</b><p>おつかれさまでした🎉</p><div class="line-invite mini"><p>🎁 公式LINEの友だちは、限定の作品でも遊べます</p><a class="line-invite-btn" href="https://line.me/R/ti/p/@134wkonl" target="_blank" rel="noopener">友だち追加</a><a class="to-archive" href="./#archive">友だちの人は、限定の作品へ →</a></div></div>
+          <div id="done"><b>完成！</b><p>おつかれさまでした🎉</p><div class="post-invite mini"><p>できた作品を、みんなに見せてみよう！</p><p class="lead">自分の作品を投稿したり、みんなの作品を見たりできます。</p><a class="post-invite-btn" href="https://post.naoblock.com/#list" target="_blank" rel="noopener">みんなの作品を見る</a><a class="post-invite-btn ghost" href="https://post.naoblock.com/#post" target="_blank" rel="noopener">作品を投稿する</a></div><div class="line-invite mini"><p>🎁 公式LINEの友だちは、限定の作品でも遊べます</p><a class="line-invite-btn" href="https://line.me/R/ti/p/@134wkonl" target="_blank" rel="noopener">友だち追加</a><a class="to-archive" href="./#archive">友だちの人は、限定の作品へ →</a></div></div>
         </div>
         <div class="card">
           <div class="where" id="t2d"></div>
